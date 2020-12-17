@@ -72,3 +72,6 @@ And a random ProLoNet agent:
 ```
 python sc_runner.py -a prolo -rand -e 500
 ```
+
+#### Citation
+If you use this project, please cite our work! Our arXiv paper is available here: https://arxiv.org/abs/1902.06007 and a newer draft will soon be published in AAAI'21!
