@@ -76,11 +76,12 @@ class PPO:
         return aggregate_actor_loss
 
     def batch_updates(self, rollouts, agent_in, go_deeper=False):
-        # batch_size = max(rollouts.step // 32, 1)
-        # num_iters = rollouts.step // batch_size
-        batch_size = 8
-        num_iters = 4
-
+        if self.actor.input_dim < 10:
+            batch_size = max(rollouts.step // 32, 1)
+            num_iters = rollouts.step // batch_size
+        else:
+            num_iters = 4
+            batch_size = 8
         total_action_loss = torch.Tensor([0])
         total_value_loss = torch.Tensor([0])
         for iteration in range(num_iters):
@@ -97,7 +98,7 @@ class PPO:
                     deep_total_action_loss = deep_total_action_loss.cuda()
             samples = [rollouts.sample() for _ in range(batch_size)]
             samples = [sample for sample in samples if sample != False]
-            if len(samples) <= 0:
+            if len(samples) <= 1:
                 continue
             state = torch.cat([sample['state'][0] for sample in samples], dim=0)
             action_probs = torch.Tensor([sample['action_prob'] for sample in samples])
