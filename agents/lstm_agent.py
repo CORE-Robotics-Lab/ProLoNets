@@ -16,8 +16,8 @@ class BaselineLSTMNet(nn.Module):
         self.input_dim = input_dim
         self.batch_size = 1
         self.hidden_dim = input_dim
-        self.lin1 = nn.Linear(input_dim, 256)
-        self.rnn = nn.LSTM(256, self.hidden_dim, self.num_layers, batch_first=True)
+        self.lin1 = nn.Linear(input_dim, input_dim)
+        self.rnn = nn.LSTM(input_dim, self.hidden_dim, self.num_layers, batch_first=True)
         self.lin2 = nn.Linear(self.hidden_dim, input_dim)
         self.lin3 = nn.Linear(input_dim, output_dim)
         self.sig = nn.ReLU()

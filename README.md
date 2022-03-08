@@ -3,7 +3,7 @@ Public implementation of "Encoding Human Domain Knowledge to Warm Start Reinforc
 
 ### Requirements
 
-I've gone ahead and made two separate virtualenvs for the OpenAI gym environments and the StarCraft II environments, both of which are built on Python 3.6. In order to work with the SC2 environments, you must have Python >= 3.6, and then installing the requirements in the `sc2_requirements.txt` file should do it. For the gym environments, any Python that works with OpenAI Gym _should_ work, but I haven't tested this.
+Refer to the `python38.txt` file for the OpenAI gym environments and the `sc2_requirements.txt` file for the StarCraft II environments. As the name suggests, `python38.txt` builds on Python 3.8.10. In order to work with the SC2 environments, you must have Python >= 3.6, and then installing the requirements in the `sc2_requirements.txt` file should do it.
 
 ### Running Experiments
 
@@ -16,6 +16,7 @@ All file involve a few command line arguments, which I'll review now:
 * `-rand`: Should the ProLoNet agent be randomly-initialized? Include flag to set to `True`.
 * `-deep`: Should the ProLoNet include dynamic growth? Include flag to set to `True`.
 * `-adv`: Should the ProLoNet be an "M-Mistake" agent? Include the flag to set to `True`. The probability itself is hard-coded in the ProLoNet file at line 35.
+* `--reproduce`: Use pre-specified random seeds for lunar lander and cart pole? Include to indicate `True`, omit for `False`.
 
 For the `-a` or `--agent_type` flag, valid options are:
 * `prolo` for a normal ProLoNet agent
@@ -29,7 +30,9 @@ For the `-a` or `--agent_type` flag, valid options are:
 
 This file runs both of the OpenAI gym domains from the paper, namely cart pole and lunar lander. It has one additional command line argument:
 * `-env` or `--env_type`: Which environment to run. Valid options are `cart` and `lunar`. Default: `cart`
-In order to run, you  must have the a Python environment with the OpenAI Gym installed. Furthermore, you  must have box2d-py if you want the lunar lander agents to run. The `gym_requirements.txt` file should have everything necessary for a Python 3.6 environment.
+
+This script will run with most any version of Python3 and the required packages. To ensure consistent results with the `--reproduce` flag, you _must_ use Python 3.8.10 and the included `python38.txt` requirements and be on Ubuntu 20.04. Other operating systems have not been tested and may require additional tinkering or random seeding to reproduce results faithfully.
+
 
 Running a ProLoNet agent on lunar lander for 1500 episodes looks like:
 ```
@@ -74,4 +77,17 @@ python sc_runner.py -a prolo -rand -e 500
 ```
 
 #### Citation
-If you use this project, please cite our work! Our arXiv paper is available here: https://arxiv.org/abs/1902.06007 and a newer draft will soon be published in AAAI'21!
+If you use this project, please cite our work! Bibtex below:
+```
+@article{prolonets, 
+title={Encoding Human Domain Knowledge to Warm Start Reinforcement Learning}, 
+volume={35},
+url={https://ojs.aaai.org/index.php/AAAI/article/view/16638},
+abstractNote={Deep reinforcement learning has been successful in a variety of tasks, such as game playing and robotic manipulation. However, attempting to learn tabula rasa disregards the logical structure of many domains as well as the wealth of readily available knowledge from domain experts that could help "warm start" the learning process. We present a novel reinforcement learning technique that allows for intelligent initialization of a neural network weights and architecture. Our approach permits the encoding domain knowledge directly into a neural decision tree, and improves upon that knowledge with policy gradient updates. We empirically validate our approach on two OpenAI Gym tasks and two modified StarCraft 2 tasks, showing that our novel architecture outperforms multilayer-perceptron and recurrent architectures. Our knowledge-based framework finds superior policies compared to imitation learning-based and prior knowledge-based approaches. Importantly, we demonstrate that our approach can be used by untrained humans to initially provide >80\% increase in expected reward relative to baselines prior to training (p < 0.001), which results in a >60\% increase in expected reward after policy optimization (p = 0.011).}, 
+number={6}, 
+journal={Proceedings of the AAAI Conference on Artificial Intelligence},
+author={Silva, Andrew and Gombolay, Matthew},
+year={2021},
+month={5},
+pages={5042-5050} }
+```

@@ -62,7 +62,17 @@ class FCNet:
         if self.sl_init:
             if input_dim == 4:
                 self.teacher = CartPoleHeuristic()
-                self.action_loss_threshold = 25
+                self.teacher = DeepProLoNet(distribution='one_hot',
+                                            input_dim=input_dim,
+                                            output_dim=output_dim,
+                                            use_gpu=False,
+                                            vectorized=False,
+                                            randomized=False,
+                                            adversarial=False,
+                                            deepen=False,
+                                            deterministic=True,
+                                            )
+                self.action_loss_threshold = 50
             elif input_dim == 6:  # Fire Sim
                 self.teacher = DeepProLoNet(distribution='one_hot',
                                             input_dim=input_dim,
@@ -89,7 +99,7 @@ class FCNet:
                 self.action_loss_threshold = 50
             elif input_dim == 8:
                 self.teacher = LunarHeuristic()
-                self.action_loss_threshold = 35
+                self.action_loss_threshold = 100
             elif input_dim == 28:
                 self.teacher = DeepProLoNet(distribution='one_hot',
                                             input_dim=input_dim,

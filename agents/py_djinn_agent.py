@@ -45,8 +45,8 @@ class DJINNAgent:
                                      is_value=True
                                      )
         self.ppo = ppo_update.PPO([self.action_network, self.value_network], two_nets=True)
-        self.actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=5e-3)
-        self.value_opt = torch.optim.RMSprop(self.value_network.parameters(), lr=5e-3)
+        self.actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-2)
+        self.value_opt = torch.optim.RMSprop(self.value_network.parameters(), lr=1e-2)
 
         self.last_state = [0, 0, 0, 0]
         self.last_action = 0

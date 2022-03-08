@@ -37,7 +37,7 @@ class DeepProLoNet:
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.deterministic = deterministic
-
+        self.lr = 2e-2
         if vectorized:
             self.bot_name += '_vect'
         if randomized:
@@ -54,6 +54,7 @@ class DeepProLoNet:
                                                                                adv_prob=self.adv_prob)
                 self.bot_name += '_adversarial' + str(self.adv_prob)
         elif input_dim == 8 and output_dim == 4:  # Lunar Lander
+            self.lr = 2e-2
             self.action_network, self.value_network = init_lander_nets(distribution, use_gpu, vectorized, randomized)
             if adversarial:
                 self.action_network, self.value_network = init_adversarial_net(adv_type='lunar',
@@ -79,13 +80,12 @@ class DeepProLoNet:
         self.ppo = ppo_update.PPO([self.action_network, self.value_network], two_nets=True, use_gpu=use_gpu)
         self.actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-5)
         self.value_opt = torch.optim.RMSprop(self.value_network.parameters(), lr=1e-5)
-
         if self.deepen:
             self.deeper_action_network = add_level(self.action_network, use_gpu=use_gpu)
             self.deeper_value_network = add_level(self.value_network, use_gpu=use_gpu)
 
-            self.deeper_actor_opt = torch.optim.RMSprop(self.deeper_action_network.parameters())
-            self.deeper_value_opt = torch.optim.RMSprop(self.deeper_value_network.parameters())
+            self.deeper_actor_opt = torch.optim.RMSprop(self.deeper_action_network.parameters(), lr=self.lr)
+            self.deeper_value_opt = torch.optim.RMSprop(self.deeper_value_network.parameters(), lr=self.lr)
         else:
             self.deeper_value_network = None
             self.deeper_action_network = None
@@ -168,6 +168,7 @@ class DeepProLoNet:
         self.epsilon = max(self.epsilon*self.epsilon_decay, self.epsilon_min)
 
     def lower_lr(self):
+        self.lr = self.lr * 0.5
         for param_group in self.ppo.actor_opt.param_groups:
             param_group['lr'] = param_group['lr'] * 0.5
         for param_group in self.ppo.critic_opt.param_groups:
@@ -248,24 +249,24 @@ class DeepProLoNet:
                 new_action_network = swap_in_node(new_action_network, self.deeper_action_network, leaf_index, use_gpu=self.use_gpu)
                 changes_made.append(leaf_index)
         if len(changes_made) > 0:
-            self.num_times_deepened += 1
             self.action_network = new_action_network
 
             if self.action_network.input_dim > 100:
-                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-4)
+                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-5)
             elif self.action_network.input_dim >= 8:
-                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-3)
+                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=self.lr)
             else:
-                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-3)
+                new_actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=self.lr)
 
             self.ppo.actor = self.action_network
             self.ppo.actor_opt = new_actor_opt
 
             for change in changes_made[::-1]:
+                self.num_times_deepened += 1
                 self.deeper_action_network = swap_in_node(self.deeper_action_network, None, change*2+1, use_gpu=self.use_gpu)
                 self.deeper_action_network = swap_in_node(self.deeper_action_network, None, change*2, use_gpu=self.use_gpu)
 
-            self.deeper_actor_opt = torch.optim.RMSprop(self.deeper_action_network.parameters(), lr=1e-2)
+            self.deeper_actor_opt = torch.optim.RMSprop(self.deeper_action_network.parameters(), lr=self.lr)
 
     def __getstate__(self):
         return {

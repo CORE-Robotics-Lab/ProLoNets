@@ -66,6 +66,9 @@ class CartPoleHeuristic:
     def duplicate(self):
         return self
 
+    def lower_lr(self):
+        pass
+
 
 class LunarHeuristic:
     def __init__(self,
@@ -119,6 +122,9 @@ class LunarHeuristic:
                 else:
                     action = 3
         return action
+
+    def lower_lr(self):
+        pass
 
     def end_episode(self, timesteps=0, num_procs=None):
         with open(self.bot_name + '_rewards.txt', 'a') as myfile:

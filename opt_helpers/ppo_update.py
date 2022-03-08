@@ -24,9 +24,12 @@ class PPO:
             if self.actor.input_dim > 100:
                 self.actor_opt = optim.RMSprop(self.actor.parameters(), lr=1e-5)
                 self.critic_opt = optim.RMSprop(self.critic.parameters(), lr=1e-5)
+            elif self.actor.input_dim < 8:
+                self.actor_opt = optim.RMSprop(self.actor.parameters(), lr=2e-2)
+                self.critic_opt = optim.RMSprop(self.critic.parameters(), lr=2e-2)
             else:
-                self.actor_opt = optim.RMSprop(self.actor.parameters(), lr=1e-2)
-                self.critic_opt = optim.RMSprop(self.critic.parameters(), lr=1e-2)
+                self.actor_opt = optim.RMSprop(self.actor.parameters(), lr=2e-2)
+                self.critic_opt = optim.RMSprop(self.critic.parameters(), lr=2e-2)
         else:
             self.actor = actor_critic_arr
             self.actor_opt = optim.Adam(self.actor.parameters(), lr=lr, eps=eps)
@@ -35,11 +38,11 @@ class PPO:
 
     def sl_updates(self, rollouts, agent_in, heuristic_teacher):
         if self.actor.input_dim < 10:
-            batch_size = max(rollouts.step // 32, 1)
+            batch_size = max(rollouts.step // 32, 2)
             num_iters = rollouts.step // batch_size
         else:
             num_iters = 4
-            batch_size = 8
+            batch_size = 32
         aggregate_actor_loss = 0
         for iteration in range(num_iters):
             total_action_loss = torch.Tensor([0])
@@ -57,6 +60,7 @@ class PPO:
                 label = torch.LongTensor([heuristic_teacher.get_action(state[0].detach().clone().data.cpu().numpy()[0])])
                 action_loss = torch.nn.functional.cross_entropy(new_action_probs, label)
                 new_value = new_value.view(-1, 1)
+                new_value = new_value[label]
                 reward = torch.Tensor([reward]).view(-1, 1)
                 value_loss = F.mse_loss(reward, new_value)
 
@@ -76,12 +80,15 @@ class PPO:
         return aggregate_actor_loss
 
     def batch_updates(self, rollouts, agent_in, go_deeper=False):
-        if self.actor.input_dim < 10:
+        if self.actor.input_dim == 8:
             batch_size = max(rollouts.step // 32, 1)
+            num_iters = rollouts.step // batch_size
+        elif self.actor.input_dim == 4:
+            batch_size = max(rollouts.step // 32, 2)
             num_iters = rollouts.step // batch_size
         else:
             num_iters = 4
-            batch_size = 8
+            batch_size = 32
         total_action_loss = torch.Tensor([0])
         total_value_loss = torch.Tensor([0])
         for iteration in range(num_iters):
@@ -112,11 +119,11 @@ class PPO:
             action_taken = torch.Tensor([sample['action_taken'] for sample in samples])
             if self.use_gpu:
                 action_taken = action_taken.cuda()
-                state = [st.cuda() for st in state]
+                state = state.cuda()
                 action_probs = action_probs.cuda()
                 old_action_probs = old_action_probs.cuda()
                 adv_targ = adv_targ.cuda()
-
+                reward = reward.cuda()
             if samples[0]['hidden_state'] is not None:
                 actor_hidden_state_batch0 = torch.cat([sample['hidden_state'][0][0] for sample in samples], dim=1)
                 actor_hidden_state_batch1 = torch.cat([sample['hidden_state'][0][1] for sample in samples], dim=1)
@@ -208,8 +215,6 @@ class PPO:
             action_loss = -torch.min(surr1, surr2).mean()
             # Policy Gradient:
             # action_loss = (torch.sum(torch.mul(update_log_probs, adv_targ).mul(-1), -1))
-            if self.use_gpu:
-                reward = reward.cuda()
             value_loss = F.mse_loss(reward, new_value)
 
             total_value_loss = total_value_loss.add(value_loss)
