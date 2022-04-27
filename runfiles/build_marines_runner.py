@@ -395,282 +395,33 @@ class StarmniBot(sc2.BotAI):
         elif unit_to_build in barracks_units:
             # Look for a reactored barracks first
                 if self.units(UnitTypeId.BARRACKSREACTOR).ready.exists:
-                    abilities_necessary = [AbilityId.WARPGATETRAIN_ZEALOT, AbilityId.WARPGATETRAIN_STALKER,
-                                           AbilityId.TRAINWARP_ADEPT, AbilityId.WARPGATETRAIN_HIGHTEMPLAR,
-                                           AbilityId.WARPGATETRAIN_DARKTEMPLAR, AbilityId.WARPGATETRAIN_SENTRY]
-                    ability_req = abilities_necessary[warpgate_gateway_units.index(unit_to_build)]
-                    building = self.units(UnitTypeId.WARPGATE).ready.random
+                    # one to one the list of abilities needed to train each unit in the barracks menu
+                    abilities_necessary = [AbilityId.BARRACKSTRAIN_MARINE]
+                    ability_req = abilities_necessary[barracks_units.index(unit_to_build)]
+                    building = self.units(UnitTypeId.BARRACKSREACTOR).ready.random
                     abilities = await self.get_available_abilities(building)
                     # all the units have the same cooldown anyway so let's just look at ZEALOT
                     if ability_req in abilities and self.can_afford(unit_to_build):
-                        pos = warp_at.position.to2.random_on_distance(4)
-                        placement = await self.find_placement(ability_req, pos, placement_step=1)
-                        if placement is None:
-                            # Can't place
-                            return FAILED_REWARD
-                        self.action_buffer.append(building.warp_in(unit_to_build, placement))
+                        self.action_buffer.append(building.train(unit_to_build))
                         return SUCCESS_TRAIN_REWARD
                     else:
                         return FAILED_REWARD
-                elif self.units(UnitTypeId.GATEWAY).ready.exists:
-                    building = self.units(UnitTypeId.GATEWAY).ready.random
-                    abilities_necessary = [AbilityId.GATEWAYTRAIN_ZEALOT, AbilityId.GATEWAYTRAIN_STALKER,
-                                           AbilityId.TRAIN_ADEPT, AbilityId.GATEWAYTRAIN_HIGHTEMPLAR,
-                                           AbilityId.GATEWAYTRAIN_DARKTEMPLAR, AbilityId.GATEWAYTRAIN_SENTRY]
-                    ability_req = abilities_necessary[warpgate_gateway_units.index(unit_to_build)]
+                elif self.units(UnitTypeId.BARRACKS).ready.exists:
+                    building = self.units(UnitTypeId.BARRACKS).ready.random
+                    abilities_necessary = [AbilityId.BARRACKSTRAIN_MARINE]
+                    ability_req = abilities_necessary[barracks_units.index(unit_to_build)]
                     abilities = await self.get_available_abilities(building)
                     if ability_req in abilities and self.can_afford(unit_to_build):
                         self.action_buffer.append(building.train(unit_to_build))
-                        return SUCCESS_TRAIN_REWARD*3
+                        return SUCCESS_TRAIN_REWARD
                     else:
                         # Can't afford or can't make unit type
                         return FAILED_REWARD
-        elif unit_to_build in robotics_units:
-            if self.units(UnitTypeId.ROBOTICSFACILITY).ready.exists:
 
-                building = self.units(UnitTypeId.ROBOTICSFACILITY).ready.random
-                abilities_necessary = [AbilityId.ROBOTICSFACILITYTRAIN_OBSERVER,
-                                       AbilityId.ROBOTICSFACILITYTRAIN_IMMORTAL,
-                                       AbilityId.ROBOTICSFACILITYTRAIN_WARPPRISM,
-                                       AbilityId.ROBOTICSFACILITYTRAIN_COLOSSUS, AbilityId.TRAIN_DISRUPTOR]
-                ability_req = abilities_necessary[robotics_units.index(unit_to_build)]
-                abilities = await self.get_available_abilities(building)
-                if ability_req in abilities and self.can_afford(unit_to_build):
-                    self.action_buffer.append(building.train(unit_to_build))
-                    return SUCCESS_TRAIN_REWARD
-                else:
-                    return FAILED_REWARD
-            else:
-                return FAILED_REWARD
-        elif unit_to_build in stargate_units:
-            if self.units(UnitTypeId.STARGATE).ready.exists:
-                building = self.units(UnitTypeId.STARGATE).ready.random
-                abilities_necessary = [AbilityId.STARGATETRAIN_PHOENIX, AbilityId.STARGATETRAIN_ORACLE,
-                                       AbilityId.STARGATETRAIN_VOIDRAY,
-                                       AbilityId.STARGATETRAIN_CARRIER, AbilityId.STARGATETRAIN_TEMPEST]
-                ability_req = abilities_necessary[stargate_units.index(unit_to_build)]
-                abilities = await self.get_available_abilities(building)
-                if ability_req in abilities and self.can_afford(unit_to_build):
-                    self.action_buffer.append(building.train(unit_to_build))
-                    return SUCCESS_TRAIN_REWARD*5
-                else:
-                    return FAILED_REWARD
-            else:
-                return FAILED_REWARD
-        elif unit_to_build == UnitTypeId.MOTHERSHIP:
-            cc = self.units(UnitTypeId.NEXUS).ready.random
-            nexus_abilities = await self.get_available_abilities(cc)
-            if self.can_afford(unit_to_build) and AbilityId.NEXUSTRAINMOTHERSHIP_MOTHERSHIP in nexus_abilities:
-                self.action_buffer.append(cc.train(unit_to_build))
-                return SUCCESS_TRAIN_REWARD
-            else:
-                return FAILED_REWARD
         return FAILED_REWARD
 
-    async def army_attack(self):
-        """
-        :return: reward based on if we sent out attackers
-        """
-        def in_range(unit, target, gap=0.5):
-            # if gap > 0, in_range will be true if unit is closer than maximum fire range
-            return unit.distance_to(target) + gap < unit.radius + target.radius + max(unit.air_range, unit.ground_range)
-
-        def half_health(unit):
-            return unit.health + unit.shield < min(unit.health_max, unit.shield_max)
-
-        attacking_classes = [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.ADEPT,
-                             UnitTypeId.HIGHTEMPLAR, UnitTypeId.DARKTEMPLAR, UnitTypeId.IMMORTAL, UnitTypeId.COLOSSUS,
-                             UnitTypeId.PHOENIX, UnitTypeId.VOIDRAY, UnitTypeId.ORACLE, UnitTypeId.TEMPEST,
-                             UnitTypeId.CARRIER, UnitTypeId.INTERCEPTOR, UnitTypeId.MOTHERSHIP]
-
-        all_targets = self.known_enemy_units.exclude_type([UnitTypeId.LARVA, UnitTypeId.EGG])
-        ground_targets = all_targets.not_flying
-        flying_targets = all_targets.flying
-        attacking_ground_targets = ground_targets.filter(lambda x: (x.can_attack_ground or x.can_attack_air))
-        attacking_flying_targets = flying_targets.filter(lambda x: (x.can_attack_ground or x.can_attack_air))
-        my_army = self.units.of_type(attacking_classes)
-        army_half_health = len([unit for unit in my_army if half_health(unit)])
-        # if army_half_health <= self.army_below_half and self.state.game_loop - self.last_attack_loop > 120:  # If nobody got hurt and we did this recently, save time and don't do it again.
-        #     self.last_attack_loop = self.state.game_loop
-        #     self.army_below_half = army_half_health
-        #     return SUCCESS_ATTACK_REWARD
-        self.last_attack_loop = self.state.game_loop
-        self.army_below_half = army_half_health
-
-        for unit in my_army:
-            if unit.type_id == UnitTypeId.SENTRY and await self.can_cast(unit, AbilityId.GUARDIANSHIELD_GUARDIANSHIELD):
-                await self.do(unit(AbilityId.GUARDIANSHIELD_GUARDIANSHIELD))
-
-            target = None
-            nearest_target = None
-            possible_targets = all_targets.filter(lambda x: unit.target_in_range(x))
-            if unit.type_id == UnitTypeId.STALKER and attacking_flying_targets.exists:
-                target = attacking_flying_targets.closest_to(unit)
-            elif possible_targets:
-                    nearest_target = possible_targets.closest_to(unit)
-                    target = min(possible_targets, key=lambda t: (t.health + t.shield) /
-                                                                 (t.ground_dps + t.air_dps + 1))
-            treat_outrange = -100
-            if all_targets:
-                if unit.type_id is UnitTypeId.COLOSSUS:
-                    treat = max(all_targets, key=lambda e: max(e.ground_range, e.air_range)** 2 -
-                                                                e.position._distance_squared(unit.position))
-                    treat_outrange = unit.radius + treat.radius + max(treat.ground_range, treat.air_range) + 1 - \
-                                     unit.distance_to(treat)
-                elif unit.is_flying:
-                    treat = max(all_targets, key=lambda e: e.air_range ** 2 -
-                                                                e.position._distance_squared(unit.position))
-                    treat_outrange = unit.radius + treat.radius + treat.air_range + 1 - \
-                                     unit.distance_to(treat)
-                else:
-                    treat = max(all_targets, key=lambda e: e.ground_range ** 2 -
-                                                                e.position._distance_squared(unit.position))
-                    treat_outrange = unit.radius + treat.radius + treat.ground_range + 1 - \
-                                     unit.distance_to(treat)
-
-            if target is None:
-                if attacking_flying_targets.exists and unit.can_attack_air:
-                    target = attacking_flying_targets.closest_to(unit)
-                elif attacking_ground_targets.exists:
-                    target = attacking_ground_targets.closest_to(unit)
-                elif flying_targets.exists and unit.can_attack_air:
-                    target = flying_targets.closest_to(unit)
-                elif ground_targets.exists:
-                    target = ground_targets.closest_to(unit)
-                else:
-                    target = random.choice(self.enemy_start_locations).position
-            retreat = False
-            if unit.type_id is not UnitTypeId.ZEALOT:
-                if (unit.type_id is not UnitTypeId.VOIDRAY and unit.weapon_cooldown > 2 and
-                    possible_targets.filter(lambda x: (x.can_attack_air or x.can_attack_ground)).exists
-                    and nearest_target is not None and (in_range(unit, nearest_target) or treat_outrange >= 0)) or \
-                        (army_half_health < my_army.amount / 2 and half_health(unit) and treat_outrange+unit.radius*2>=0
-                        or unit.type_id is UnitTypeId.SENTRY):
-                    # target = self.start_location
-                    retreat = True
-                    if unit.distance_to(self.start_location) < 5:
-                        target = all_targets.closest_to(unit)
-            unit_abs = await self.get_available_abilities(unit)
-            if AbilityId.EFFECT_BLINK_STALKER in unit_abs and await self.can_cast(unit, AbilityId.EFFECT_BLINK_STALKER)\
-                    and unit.distance_to(target) > 6 and \
-                    target is not UnitTypeId.ZERGLING:  # don't jump into zerglings
-                if not retreat:
-                    towards = -unit.radius + unit.ground_range  # one corpus closer
-                    if isinstance(target, sc2Unit):
-                        towards += target.radius
-                        target = target.position.towards(unit.position, towards)
-                    else:
-                        target = target.towards(unit.position, towards)
-                await self.do(unit(AbilityId.EFFECT_BLINK_STALKER, target))
-                if retreat and possible_targets.exists:
-                    # blink in other direction if can't blink back to base
-                    alt_target = unit.position.towards(possible_targets.center, -8)
-                    self.action_buffer.append(unit(AbilityId.EFFECT_BLINK_STALKER, alt_target, queue=True))
-            if retreat:
-                self.action_buffer.append(unit.move(target))
-            else:
-                self.action_buffer.append(unit.attack(target))
-        attack_reward = min((len(my_army)-5)*SUCCESS_ATTACK_REWARD, 10)
-        return attack_reward
-
-    async def defend(self):
-        """
-        This function find enemy army centroids, and the number of attackers in each army
-        so if we're being hit on 3 fronts, it'll attempt to distribute to each.
-        #TODO: intelligently grab first available attackers (like.. grab nearest)
-        :return: success for a defensive mobilization, fail for nobody to defend or nothing to defend
-        """
-        enemy_positions = []
-        num_attackers = []
-        for depo in self.units(UnitTypeId.NEXUS):
-            num_attackers.append(0)
-            have_position = False
-            for unit in self.known_enemy_units.not_structure:
-                if unit.position.to2.distance_to(depo.position.to2) < 15:
-                    if not have_position:
-                        enemy_positions.append(unit.position)
-                        have_position = True
-                    num_attackers[-1] += 1
-        defensive_orders = []
-        for position, army_size in zip(enemy_positions, num_attackers):
-            attacking_classes = [UnitTypeId.ZEALOT, UnitTypeId.STALKER, UnitTypeId.SENTRY, UnitTypeId.ADEPT,
-                                 UnitTypeId.HIGHTEMPLAR, UnitTypeId.DARKTEMPLAR, UnitTypeId.IMMORTAL,
-                                 UnitTypeId.COLOSSUS,
-                                 UnitTypeId.PHOENIX, UnitTypeId.VOIDRAY, UnitTypeId.ORACLE, UnitTypeId.TEMPEST,
-                                 UnitTypeId.CARRIER, UnitTypeId.INTERCEPTOR, UnitTypeId.MOTHERSHIP]
-            for unit_type in attacking_classes:
-                for unit in self.units(unit_type).idle:
-                    defensive_orders.append(unit.attack(position))
-                    if len(defensive_orders) > army_size:
-                        break
-            if len(defensive_orders) < army_size:
-                for worker in self.workers:
-                    defensive_orders.append(worker.attack(position))
-                    if len(defensive_orders) > army_size:
-                        break
-
-        self.action_buffer.extend(defensive_orders)
-        if len(defensive_orders) > 0:
-            return SUCCESS_ATTACK_REWARD
-        else:
-            return FAILED_REWARD
-
-    async def send_scout(self):
-        """
-        :return: fail if we scouted too recently, success otherwise
-        """
-        # TODO: add global list of recently checked base locations so that I can prioritize based on recency of check
-        # TODO: use global list of recency / discovery to reward bot for scouting that pays off
-        # If I have scouted recently (within 200 iterations?), don't re-scout
-        if self.itercount - self.last_scout_iteration < 200:
-            return FAILED_REWARD
-        a_scout = None
-        places_to_look = []
-        scout_loc = random.choice(self.enemy_start_locations)
-
-        for base_location in self.expansion_locations.keys():
-            if base_location.position in self.scouted_bases:
-                continue
-            else:
-                places_to_look.append(base_location)
-        if len(places_to_look) == 0:
-            self.scouted_bases = []
-
-        if len(self.known_enemy_structures) < 1:
-            # If we haven't found their main yet, prioritize enemy base locs
-            enemy_base_locs = self.enemy_start_locations
-            for enemy_base_loc in enemy_base_locs:
-                invalid = False
-                # This one is a candidate
-                if enemy_base_loc.position in self.scouted_bases:
-                    invalid = True
-                    # If we've been nearby, it's no longer valid
-                if not invalid:
-                    # If we haven't been nearby, this is valid. break search
-                    scout_loc = enemy_base_loc
-                    break
-        elif len(places_to_look) > 0:
-            scout_loc = random.choice(places_to_look).position
-        else:
-            scout_loc = random.choice(self.enemy_start_locations)
-
-        if self.units(UnitTypeId.OBSERVER).exists:
-            a_scout = self.units(UnitTypeId.OBSERVER).closest_to(scout_loc)
-        elif self.workers.exists:
-            if self.workers.idle.exists:
-                a_scout = self.workers.idle.closest_to(scout_loc)
-            else:
-                a_scout = self.workers.closest_to(scout_loc)
-
-        if a_scout is not None:
-            self.action_buffer.append(a_scout.move(scout_loc))
-            self.last_scout_iteration = self.itercount  # Track when we sent out our last scout
-            self.scouted_bases.append(scout_loc)
-            return SUCCESS_SCOUT_REWARD
-        else:
-            return FAILED_REWARD
-
     async def research_upgrade(self, research_index):
+        # could be interesting to leave for future stuff but not particularly useful for Make Marines
         index_to_upgrade = {
             34: "ground_attacks",
             35: "air_attacks",
@@ -724,7 +475,7 @@ class StarmniBot(sc2.BotAI):
 
     async def back_to_mining(self):
         reassigned_miners = 0
-        for a in self.units(UnitTypeId.ASSIMILATOR):
+        for a in self.units(UnitTypeId.REFINERY):
             if a.assigned_harvesters < a.ideal_harvesters:
                 w = self.workers.closer_than(20, a)
                 if w.exists:
@@ -740,6 +491,10 @@ class StarmniBot(sc2.BotAI):
             return FAILED_REWARD
 
     def finish_episode(self, game_result):
+        # TODO: replace this bit with the proper minigame reset protocols to make things FAST
+        # The map has a trigger that looks for someone sending the word "reset" exactly in chat
+        # await self.chat_send("reset")
+        # The reward for a rollout should be proportional to the number of marines present at the end
         print("Game over!")
         if game_result == sc2.Result.Defeat:
             reward = -250  # + self.itercount/500.0 + self.units.amount
@@ -793,16 +548,10 @@ def run_episode(q, main_agent):
     agent_in = main_agent.duplicate()
 
     bot = StarmniBot(rl_agent=agent_in)
-    opponents = [
-        Computer(Race.Zerg, Difficulty.Medium),
-        # Computer(Race.Protoss, Difficulty.VeryEasy),
-        # Computer(Race.Terran, Difficulty.VeryEasy)
-    ]
-    enemy = random.choice(opponents)
 
-    try:
-        result = sc2.run_game(sc2.maps.get("Acid Plant LE"),
-                              [Bot(Race.Protoss, bot), enemy],
+    try: # TODO: replace this with the correct minigame map and set up the game
+        result = sc2.run_game(sc2.maps.get("BuildBCs"),
+                              [Bot(Race.Terran, bot)],
                               realtime=False)
     except KeyboardInterrupt:
         result = [-1, -1]
@@ -947,6 +696,7 @@ def bernoulli_main(episodes, agent_in, num_processes):
 
 
 if __name__ == '__main__':
+    # TODO: change the agent types to include our own policy network
     parser = argparse.ArgumentParser()
     parser.add_argument("-a", "--agent_type", help="architecture of agent to run", type=str, default='djinn')
     parser.add_argument("-e", "--episodes", help="how many episodes", type=int, default=1000)
