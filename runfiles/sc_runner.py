@@ -20,8 +20,8 @@ import time
 import torch.multiprocessing as mp
 import argparse
 
-DEBUG = False
-SUPER_DEBUG = False
+DEBUG = True
+SUPER_DEBUG = True
 if SUPER_DEBUG:
     DEBUG = True
 
