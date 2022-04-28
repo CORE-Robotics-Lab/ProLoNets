@@ -64,7 +64,7 @@ class StarmniBot(sc2.BotAI):
             await self._client.leave()
         if iteration == 0:
             base_height = self._game_info.terrain_height[self.game_info.map_center.rounded]
-            max_x, max_y, min_x, min_y = self.game_info.playable_area
+            min_x, min_y, max_x, max_y = self.game_info.playable_area
             initial_mineral_field_search_radius = 16
             print("game_info.map_center", self.game_info.map_center)
             print("self.state.mineral_field", self.state.mineral_field)
