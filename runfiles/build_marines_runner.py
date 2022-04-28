@@ -14,7 +14,7 @@ from agents.prolonet_agent import DeepProLoNet
 from agents.py_djinn_agent import DJINNAgent
 from agents.lstm_agent import LSTMNet
 from agents.baseline_agent import FCNet
-from runfiles import sc_helpers
+from runfiles import build_marines_helpers
 import numpy as np
 import time
 import torch.multiprocessing as mp
@@ -61,7 +61,11 @@ class StarmniBot(sc2.BotAI):
         if iteration == 0:
             base_height = self._game_info.terrain_height[self.game_info.map_center.rounded]
             max_x, max_y, min_x, min_y = self.game_info.playable_area
-            min_pos = self.state.mineral_field.closer_than(8, self.game_info.map_center).center
+            initial_mineral_field_search_radius = 16
+            print("game_info.map_center", self.game_info.map_center)
+            print("self.state.mineral_field", self.state.mineral_field)
+            print("closer_than", self.state.mineral_field.closer_than(initial_mineral_field_search_radius, self.game_info.map_center))
+            min_pos = self.state.mineral_field.closer_than(initial_mineral_field_search_radius, self.game_info.map_center).center
             vector = min_pos.direction_vector(self.game_info.map_center)
             if vector.x == 0 or vector.y == 0:
                 vector = min_pos.direction_vector(self.game_info.map_center)
@@ -106,14 +110,15 @@ class StarmniBot(sc2.BotAI):
         # if self.itercount % 10 != 0:
         #     return
         # Get current state (minerals, gas, idles, etc.)
-        current_state = sc_helpers.get_player_state(self.state)
+        current_state = build_marines_helpers.get_player_state(self.state)
         # TODO: Modify the get_player_state to return a state that is more useful to building more marines
+        # print("SC Helpers Current State:", current_state)
         current_state = np.array(current_state)
-        my_unit_type_arr = sc_helpers.my_units_to_type_count(self.units)
-        # enemy_unit_type_arr = sc_helpers.enemy_units_to_type_count(self.known_enemy_units)
+        my_unit_type_arr = build_marines_helpers.my_units_to_type_count(self.units)
+        enemy_unit_type_arr = build_marines_helpers.enemy_units_to_type_count(self.known_enemy_units)
         # Get pending
         pending = []
-        for unit_type in sc_helpers.MY_POSSIBLES:
+        for unit_type in build_marines_helpers.MY_POSSIBLES:
             if self.already_pending(unit_type):
                 pending.append(1)
             else:
@@ -122,19 +127,26 @@ class StarmniBot(sc2.BotAI):
         # Reshape all into batch of 1
         my_unit_type_arr = my_unit_type_arr.reshape(-1)  # batch_size, len
         current_state = current_state.reshape(-1)
-        # enemy_unit_type_arr = enemy_unit_type_arr.reshape(-1)
+        enemy_unit_type_arr = enemy_unit_type_arr.reshape(-1)
         pending = np.array(pending).reshape(-1)
         last_act = np.array([0]).reshape(-1)
         self.prev_state = np.concatenate((current_state,
                                           my_unit_type_arr,
-                                         # enemy_unit_type_arr,
+                                          enemy_unit_type_arr,
                                           pending,
                                           last_act))
+
+        # print('current_state:\n', current_state)
+        # print('my_unit_type_arr:\n', my_unit_type_arr)
+        # print('pending:\n', pending)
+        # print('last_act:\n', last_act)
+        # print('PREVIOUS STATE:\n\n', self.prev_state)
 
         action = self.agent.get_action(self.prev_state)
         # TODO: abstract the act of getting an action into our own agent
         self.last_reward = await self.activate_sub_bot(action)  # delegates the specific action to the baby bots below
         self.last_reward -= STEP_PENALTY
+        print(self.last_reward)
         self.agent.save_reward(self.last_reward)
         self.last_sc_action = action
         try:
