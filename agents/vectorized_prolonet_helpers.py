@@ -607,6 +607,11 @@ def init_sc_nets(dist='one_hot', use_gpu=False, vectorized=False, randomized=Fal
     else:
         return init_sc_nets_nonvec(dist, use_gpu, randomized)
 
+def init_sc_build_marines_net(dist='one_hot', use_gpu=False, vectorized=False, randomized=False):
+    if vectorized:
+        print('Vectorized not supported.')
+    else:
+        return init_sc_build_marines_net_novec(dist, use_gpu, randomized)
 
 def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
     dim_in = 194
@@ -791,6 +796,38 @@ def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
                       leaves=init_leaves,
                       alpha=1,
                       vectorized=False,
+                      device='cuda' if use_gpu else 'cpu',
+                      is_value=True)
+    return actor, critic
+
+def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=False):
+    dim_in = 142
+    dim_out = 10
+
+    if randomized:
+        init_weights = None
+        init_comparators = None
+        init_selectors = None
+        init_leaves = 16
+
+    actor = ProLoNet(input_dim=dim_in,
+                     output_dim=dim_out,
+                     weights=init_weights,
+                     comparators=init_comparators,
+                     selectors=init_selectors,
+                     leaves=init_leaves,
+                     alpha=1,
+                     vectorized=True,
+                     device='cuda' if use_gpu else 'cpu',
+                     is_value=False)
+    critic = ProLoNet(input_dim=dim_in,
+                      output_dim=dim_out,
+                      weights=init_weights,
+                      comparators=init_comparators,
+                      selectors=init_selectors,
+                      leaves=init_leaves,
+                      alpha=1,
+                      vectorized=True,
                       device='cuda' if use_gpu else 'cpu',
                       is_value=True)
     return actor, critic

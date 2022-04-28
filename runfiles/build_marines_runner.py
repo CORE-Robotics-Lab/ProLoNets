@@ -19,6 +19,9 @@ import numpy as np
 import time
 import torch.multiprocessing as mp
 import argparse
+from datetime import datetime
+import traceback
+import random
 
 DEBUG = True
 SUPER_DEBUG = True
@@ -54,6 +57,7 @@ class StarmniBot(sc2.BotAI):
         self.positions_for_buildings = []
         # self.army_below_half = 0
         # self.last_attack_loop = 0
+        self.debug_count = 0
 
     async def on_step(self, iteration):
         if self.units(UnitTypeId.COMMANDCENTER).amount < 1 and self.workers.amount < 1:
@@ -69,27 +73,36 @@ class StarmniBot(sc2.BotAI):
             vector = min_pos.direction_vector(self.game_info.map_center)
             if vector.x == 0 or vector.y == 0:
                 vector = min_pos.direction_vector(self.game_info.map_center)
-            p0 = self.game_info.map_center + (vector * Point2((5.5, 5.5))).rounded  # will have to tune these locations
+            p0 = self.game_info.map_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
             # TODO: fix the locations to the true locations. this will require much trial and error
             p1 = p0 + vector * Point2((4, 6))
             b0 = p0 + vector * Point2((0.5, 2.5))
             b1 = b0 + vector * Point2((0, 3))
             b2 = p0 + vector * Point2((4.5, 0.5))
             b3 = b2 + vector * Point2((0, 3))
-            for y in range(-3, 3):
-                for x in range(-3, 3):
+            my_range = 100
+            for y in np.arange(-my_range, my_range, 1):
+                for x in np.arange(-my_range, my_range, 1):
                     if x < 0 and y < 0:
                         continue
-                    for pos in [p0 + vector * Point2((x * 8, y * 9)), p1 + vector * Point2((x * 8, y * 9))]:
-                        if 0 < pos.x < max_x and 0 < pos.y < max_y and \
-                                self._game_info.terrain_height[pos.rounded] == base_height:
-                            self.positions_for_depots.append(pos)
+                    for pos in [p0 + vector * Point2((x * 1, y * 1)), p1 + vector * Point2((x * 1, y * 1))]:
+
+                        if 0 < pos.x < max_x and 0 < pos.y < max_y:
+                            # print('test:', pos.x, max_x, pos.y, max_y)
+                            # print(pos.rounded, self._game_info.terrain_height[pos.rounded], base_height)
+                            if self._game_info.terrain_height[pos.rounded] == base_height or True:
+                                self.positions_for_depots.append(pos)
+
+                                # print('yay!')
                     for pos in [b0 + vector * Point2((x * 8, y * 9)), b1 + vector * Point2((x * 8, y * 9)),
                                 b2 + vector * Point2((x * 8, y * 9)), b3 + vector * Point2((x * 8, y * 9))]:
                         if 0 < pos.x < max_x and 0 < pos.y < max_y and \
-                                self._game_info.terrain_height[pos.rounded] == base_height:
+                                (self._game_info.terrain_height[pos.rounded] == base_height or True):
                             self.positions_for_buildings.append(pos)
             self.positions_for_depots.sort(key=lambda a: self.start_location.distance_to(a))
+            # print("\n\n\n\n\n\n", self.positions_for_buildings)
+            print(self.positions_for_depots)
+            # quit()
             self.positions_for_buildings.sort(key=lambda a: self.start_location.distance_to(a))
 
             await self.chat_send("ProLo")
@@ -210,12 +223,13 @@ class StarmniBot(sc2.BotAI):
 
         else:
             if SUPER_DEBUG:
-                print("Building")
+                print("Building", general_bot_out)
             try:
                 return await self.activate_builder(general_bot_out)
                 # this is a catch-all that tells it to build a unit of the specified ID.
             except Exception as e:
                 print("Builder Exception", e)
+                traceback.print_exc()
                 return FAILED_REWARD
 
     async def activate_builder(self, hard_coded_choice):
@@ -224,9 +238,16 @@ class StarmniBot(sc2.BotAI):
         :param hard_coded_choice: output from the RL agent
         :return: reward for action based on legality
         """
+        self.debug_count += 1
+
+        if self.debug_count % 100 == 0:
+            hard_coded_choice = 1
+        else:
+            hard_coded_choice = 9
+
         unit_choice = hard_coded_choice
         if SUPER_DEBUG:
-            print(unit_choice)
+            print(build_marines_helpers.my_units_to_str(unit_choice), 'idx:', unit_choice)
 
         # Need to know unit type to know if placement is valid.
         success = FAILED_REWARD
@@ -238,7 +259,7 @@ class StarmniBot(sc2.BotAI):
             4: UnitTypeId.ENGINEERINGBAY,
             5: UnitTypeId.ARMORY,
             6: UnitTypeId.FACTORY,
-            7: UnitTypeId.STARPORT,
+            7: UnitTypeId.STARPORT
         }  # depending on the application we can narrow this down even further
         if unit_choice < 8:
             # If the builder wants to build a building, we need to place it:
@@ -250,17 +271,19 @@ class StarmniBot(sc2.BotAI):
                 # Gas collectors will automatically move onto vespene geysers
                 target_pt = None
             elif unit_choice == 1:
-                target_pt = self.positions_for_depots[0]
+                target_pt = random.choice(self.positions_for_depots)
                 pos_ind = 0
             else:
                 target_pt = self.positions_for_buildings[0]
                 pos_ind = 0
+            target_pt = random.choice(self.positions_for_depots)
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
                     success = await self.build_building(unit_choice, None)
                 except Exception as e:
                     if DEBUG:
-                        print("exception", e)
+                        print("exception (build_building None target)", e)
+                        quit()
                     success = FAILED_REWARD
             else:  # the target building is not something that automatically snaps to location
                 while True:
@@ -286,21 +309,21 @@ class StarmniBot(sc2.BotAI):
                     success = await self.build_building(unit_choice, target_pt)
                 except Exception as e:
                     if DEBUG:
-                        print("Exception", e)
+                        print("Exception (build_building)", e)
                     success = FAILED_REWARD
         elif unit_choice < 34:  # not a building but a unit
             try:
                 success = await self.train_unit(unit_choice)
             except Exception as e:
                 if DEBUG:
-                    print("Exception", e)
+                    print("Exception (training)", e)
                 success = FAILED_REWARD
         elif unit_choice < 39:  # not a building or a unit but an upgrade
             try:
                 success = await self.research_upgrade(unit_choice)
             except Exception as e:
                 if DEBUG:
-                    print("Exception", e)
+                    print("Exception (research upgrade)", e)
                 success = FAILED_REWARD
         return success
 
@@ -371,16 +394,17 @@ class StarmniBot(sc2.BotAI):
                 return FAILED_REWARD
 
             else:
-                # pos_dist = random.random()*2 + 3
-                pos_dist = 0.5
+                pos_dist = random.random()*2 + 3
+                # pos_dist = 0.5
                 pos = placement_location.position.to2.towards(random.choice(self.corners), pos_dist)
 
                 worker = self.select_build_worker(pos, force=True)
                 if worker is not None:
                     self.action_buffer.append(worker.build(building_target, pos))
-                    # await self.build(building_target, near=pos)
+                    await self.build(building_target, near=pos)
                     if building_target == UnitTypeId.SUPPLYDEPOT:
                         return SUCCESS_BUILD_REWARD*0.1
+                        print('you did it! maybe...')
                     return SUCCESS_BUILD_REWARD
                 else:
                     return FAILED_REWARD
@@ -440,10 +464,10 @@ class StarmniBot(sc2.BotAI):
             36: "ground_armor",
             37: "air_armor",
             38: "shields",
-            # 39: "speed",
-            # 40: "range",
-            # 41: "spells",
-            # 42: "misc"
+            39: "speed",
+            40: "range",
+            41: "spells",
+            42: "misc"
         }
         research_topic = index_to_upgrade[research_index]
         if research_topic in ["ground_attacks", "ground_armor", "shields"]:
@@ -562,9 +586,10 @@ def run_episode(q, main_agent):
     bot = StarmniBot(rl_agent=agent_in)
 
     try: # TODO: replace this with the correct minigame map and set up the game
-        result = sc2.run_game(sc2.maps.get("BuildBCs"),
+        result = sc2.run_game(sc2.maps.get("BuildMarines"),
                               [Bot(Race.Terran, bot)],
-                              realtime=False)
+                              realtime=False,
+                              save_replay_as=os.path.join('replays', datetime.now().strftime("%Y-%m-%d_%H-%M-%S.SC2REPLAY")))
     except KeyboardInterrupt:
         result = [-1, -1]
     except Exception as e:
@@ -733,8 +758,8 @@ if __name__ == '__main__':
     RANDOM = args.rand  # Applies for 'prolo' random init or no? Default false
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
     # torch.set_num_threads(NUM_PROCS)
-    dim_in = 194
-    dim_out = 44
+    dim_in = 142
+    dim_out = 10
     bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
     mp.set_sharing_strategy('file_system')
     if AGENT_TYPE == 'prolo':

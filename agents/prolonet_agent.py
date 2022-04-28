@@ -4,7 +4,8 @@ import sys
 sys.path.insert(0, '../')
 from opt_helpers import replay_buffer, ppo_update
 from agents.vectorized_prolonet_helpers import init_cart_nets, swap_in_node, add_level, \
-    init_lander_nets, init_micro_net, init_adversarial_net, init_sc_nets, save_prolonet, load_prolonet, init_fire_nets
+    init_lander_nets, init_micro_net, init_adversarial_net, init_sc_nets, init_sc_build_marines_net, \
+    save_prolonet, load_prolonet, init_fire_nets
 import copy
 import os
 
@@ -70,6 +71,8 @@ class DeepProLoNet:
                                                                                distribution_in=distribution,
                                                                                adv_prob=self.adv_prob)
                 self.bot_name += '_adversarial' + str(self.adv_prob)
+        elif input_dim == 142 and output_dim == 10:   # SC BuildMarines
+            self.action_network, self.value_network = init_sc_build_marines_net(distribution, use_gpu, vectorized, randomized)
         elif input_dim == 6 and output_dim == 5:  # Fire Sim
             self.action_network, self.value_network = init_fire_nets(distribution,
                                                                      use_gpu,

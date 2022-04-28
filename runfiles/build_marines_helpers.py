@@ -10,34 +10,8 @@ MY_POSSIBLES = [COMMANDCENTER,
                 ARMORY,
                 FACTORY,
                 STARPORT,
-                MARINE,
                 SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV,
-                SCV]
+                MARINE]
 
 ENEMY_POSSIBLES = [PROBE, ZEALOT, STALKER, SENTRY, ADEPT, HIGHTEMPLAR, DARKTEMPLAR, OBSERVER, ARCHON, WARPPRISM,
      IMMORTAL, COLOSSUS, DISRUPTOR, PHOENIX, VOIDRAY, ORACLE, TEMPEST, CARRIER, INTERCEPTOR,
@@ -91,6 +65,8 @@ ENEMY_MAPPINGS = {
         LURKERDEN: LURKERDENMP,
     }
 
+def my_units_to_str(unit_idx):
+    return str(MY_POSSIBLES[unit_idx])
 
 def my_units_to_type_count(unit_array_in):
     """
