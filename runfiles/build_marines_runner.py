@@ -85,7 +85,7 @@ class StarmniBot(sc2.BotAI):
             # TODO: fix the locations to the true locations. this will require much trial and error
             for i in np.arange(21, 50, 4):
                 for j in np.arange(17, 39, 3):
-                    pos = Point2((i, j))
+                    pos = Point2((float(i), float(j)))
                     self.positions_for_depots.append(pos)
                     self.positions_for_buildings.append(pos)
 
@@ -243,7 +243,7 @@ class StarmniBot(sc2.BotAI):
                 pos_ind = 0
             positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
             target_pt = self.positions_for_depots[positions_for_depots_idx]
-            print("HELLO!", len(self.positions_for_depots))
+            print("HELLO!", len(self.positions_for_depots), target_pt)
             # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
