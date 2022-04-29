@@ -149,11 +149,11 @@ class StarmniBot(sc2.BotAI):
                                           pending,
                                           last_act))
 
-        print('current_state:\n', current_state)
-        print('my_unit_type_arr:\n', my_unit_type_arr)
-        print('pending:\n', pending)
-        print('last_act:\n', last_act)
-        print('PREVIOUS STATE:\n\n', self.prev_state)
+        # print('current_state:\n', current_state)
+        # print('my_unit_type_arr:\n', my_unit_type_arr)
+        # print('pending:\n', pending)
+        # print('last_act:\n', last_act)
+        # print('PREVIOUS STATE:\n\n', self.prev_state)
 
         action = self.agent.get_action(self.prev_state)
         # TODO: abstract the act of getting an action into our own agent
@@ -243,7 +243,7 @@ class StarmniBot(sc2.BotAI):
         if self.debug_count % 100 == 0:
             hard_coded_choice = 1
         else:
-            hard_coded_choice = 9
+            hard_coded_choice = 1
 
         unit_choice = hard_coded_choice
         if SUPER_DEBUG:
