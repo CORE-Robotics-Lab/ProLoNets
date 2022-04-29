@@ -2,6 +2,40 @@ from sc2.constants import *
 from sc2.ids.unit_typeid import *
 import numpy as np
 from sc2 import Race
+from enum import Enum
+
+class TYPES(Enum):
+    ARMY_COUNT = 0
+    FOOD_ARMY = 1
+    FOOD_CAP = 2
+    FOOD_USED = 3
+    IDLE_WORKER_COUNT = 4
+    LARVA_COUNT = 5
+    MINERALS = 6
+    VESPENE = 7
+    WARP_GATE_COUNT = 8
+    COMMAND_CENTER = 9
+    SUPPLY_DEPOT = 10
+    REFINERY = 11
+    BARRACKS = 12
+    ENGINEERING_BAY = 13
+    ARMORY = 14
+    FACTORY = 15
+    STARPORT = 16
+    SCV = 17
+    MARINE = 18
+    PENDING_COMMAND_CENTER = 19
+    PENDING_SUPPLY_DEPOT = 20
+    PENDING_REFINERY = 21
+    PENDING_BARRACKS = 22
+    PENDING_ENGINEERING_BAY = 23
+    PENDING_ARMORY = 24
+    PENDING_FACTORY = 25
+    PENDING_STARPORT = 26
+    PENDING_SCV = 27
+    PENDING_MARINE = 28
+    LAST_ACTION = 29
+
 MY_POSSIBLES = [COMMANDCENTER,
                 SUPPLYDEPOT,
                 REFINERY,
@@ -12,60 +46,6 @@ MY_POSSIBLES = [COMMANDCENTER,
                 STARPORT,
                 SCV,
                 MARINE]
-
-ENEMY_POSSIBLES = [PROBE, ZEALOT, STALKER, SENTRY, ADEPT, HIGHTEMPLAR, DARKTEMPLAR, OBSERVER, ARCHON, WARPPRISM,
-     IMMORTAL, COLOSSUS, DISRUPTOR, PHOENIX, VOIDRAY, ORACLE, TEMPEST, CARRIER, INTERCEPTOR,
-     MOTHERSHIP, NEXUS, PYLON, ASSIMILATOR, GATEWAY, WARPGATE, FORGE, CYBERNETICSCORE, PHOTONCANNON,
-     SHIELDBATTERY, ROBOTICSFACILITY, STARGATE, TWILIGHTCOUNCIL, ROBOTICSBAY, FLEETBEACON,
-     TEMPLARARCHIVE, DARKSHRINE, ORACLESTASISTRAP, SCV, MULE, MARINE, REAPER, MARAUDER, GHOST, HELLION, WIDOWMINE,
-     CYCLONE, SIEGETANKSIEGED, THOR, VIKINGFIGHTER, MEDIVAC, LIBERATOR, RAVEN, BANSHEE, BATTLECRUISER, COMMANDCENTER,
-     SUPPLYDEPOT, REFINERY, ENGINEERINGBAY, BUNKER, MISSILETURRET, SENSORTOWER, GHOSTACADEMY, FACTORY, BARRACKS, STARPORT,
-     FUSIONCORE, TECHLAB, REACTOR, AUTOTURRET, ORBITALCOMMAND, PLANETARYFORTRESS, HELLIONTANK, LARVA, DRONE, OVERLORD,
-     QUEEN, ZERGLING, BANELING, ROACH, RAVAGER, OVERSEER, CHANGELING, HYDRALISK, LURKER, MUTALISK, CORRUPTOR,
-     SWARMHOSTMP, LOCUSTMP, INFESTOR, INFESTEDTERRAN, VIPER, ULTRALISK, BROODLORD, BROODLING, HATCHERY, EXTRACTOR,
-     SPAWNINGPOOL, SPINECRAWLER, SPORECRAWLER, EVOLUTIONCHAMBER, ROACHWARREN, BANELINGNEST, HYDRALISKDEN, LURKERDENMP,
-     SPIRE, NYDUSNETWORK, INFESTATIONPIT, ULTRALISKCAVERN, CREEPTUMOR, LAIR, HIVE, GREATERSPIRE]
-ENEMY_MAPPINGS = {
-        WIDOWMINEBURROWED: WIDOWMINE,  # widow mine / burrowed widow mine
-        SIEGETANK: SIEGETANKSIEGED,  # siege tank siege / tank
-        VIKINGASSAULT: VIKINGFIGHTER,  # viking assault / viking fighter
-        COMMANDCENTERFLYING: COMMANDCENTER,  # flying command center / command center
-        ORBITALCOMMANDFLYING: ORBITALCOMMAND,  # flying orbital command / command center
-        SUPPLYDEPOTLOWERED: SUPPLYDEPOT,  # supply depot / lowered
-        BARRACKSFLYING: BARRACKS,  # barracks / flying barracks
-        FACTORYFLYING: FACTORY,  # factory / factory flying
-        STARPORTFLYING: STARPORT,  # starport / starport flying
-        BARRACKSTECHLAB: TECHLAB,  # barracks tech lab / tech lab
-        FACTORYTECHLAB: TECHLAB,  # factory tech lab / tech lab
-        STARPORTTECHLAB: TECHLAB,  # starport tech lab / tech lab
-        BARRACKSREACTOR: REACTOR,  # barracks reactor / reactor
-        FACTORYREACTOR: REACTOR,  # factory reactor / reactor
-        STARPORTREACTOR: REACTOR,  # starport reactor / reactor
-        DRONEBURROWED: DRONE,
-        BANELINGBURROWED: BANELING,
-        HYDRALISKBURROWED: HYDRALISK,
-        ROACHBURROWED: ROACH,
-        ZERGLINGBURROWED: ZERGLING,
-        QUEENBURROWED: QUEEN,
-        RAVAGERBURROWED: RAVAGER,
-        CHANGELINGZEALOT: CHANGELING,
-        CHANGELINGMARINESHIELD: CHANGELING,
-        CHANGELINGMARINE: CHANGELING,
-        CHANGELINGZERGLINGWINGS: CHANGELING,
-        CHANGELINGZERGLING: CHANGELING,
-        LURKERBURROWED: LURKER,
-        SWARMHOSTBURROWEDMP: SWARMHOSTMP,
-        LOCUSTMPFLYING: LOCUSTMP,
-        INFESTORTERRANBURROWED: INFESTOR,
-        INFESTORBURROWED: INFESTOR,
-        INFESTORTERRAN: INFESTOR,
-        ULTRALISKBURROWED: ULTRALISK,
-        SPINECRAWLERUPROOTED: SPINECRAWLER,
-        SPORECRAWLERUPROOTED: SPORECRAWLER,
-        LURKERDEN: LURKERDENMP,
-    }
-
-
 
 def my_units_to_str(unit_idx):
     return str(MY_POSSIBLES[unit_idx])
@@ -84,23 +64,6 @@ def my_units_to_type_count(unit_array_in):
         # print(MY_POSSIBLES)
         # print(MY_POSSIBLES.index(unit.type_id))
         type_counts[MY_POSSIBLES.index(unit.type_id)] += 1
-    return type_counts
-
-
-def enemy_units_to_type_count(enemy_array_in):
-    """
-    Take in enemy units and map them to type counts, as in my army. But here I consider all 3 races
-    :param enemy_array_in: self.known_enemy_units (or my all_enemy_units list) from python-sc2 bot
-    :return: 1x111 where each element is the count of units of that type
-    """
-    type_counts = np.zeros(len(ENEMY_POSSIBLES))
-    for unit in enemy_array_in:
-        if unit.type_id in ENEMY_POSSIBLES:
-            type_counts[ENEMY_POSSIBLES.index(unit.type_id)] += 1
-        elif unit.type_id in ENEMY_MAPPINGS.keys():
-            type_counts[ENEMY_POSSIBLES.index(ENEMY_MAPPINGS[unit.type_id])] += 1
-        else:
-            continue
     return type_counts
 
 

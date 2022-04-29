@@ -83,6 +83,7 @@ class DeepProLoNet:
         self.ppo = ppo_update.PPO([self.action_network, self.value_network], two_nets=True, use_gpu=use_gpu)
         self.actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-5)
         self.value_opt = torch.optim.RMSprop(self.value_network.parameters(), lr=1e-5)
+
         if self.deepen:
             self.deeper_action_network = add_level(self.action_network, use_gpu=use_gpu)
             self.deeper_value_network = add_level(self.value_network, use_gpu=use_gpu)
@@ -105,6 +106,8 @@ class DeepProLoNet:
         self.deeper_full_probs = None
         self.reward_history = []
         self.num_steps = 0
+
+
 
     def get_action(self, observation):
         with torch.no_grad():
