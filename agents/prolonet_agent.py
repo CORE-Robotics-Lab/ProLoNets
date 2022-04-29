@@ -10,6 +10,8 @@ import copy
 import os
 from runfiles.build_marines_helpers import TYPES
 
+from runfiles.build_marines_helpers import TYPES
+
 class DeepProLoNet:
     def __init__(self,
                  distribution='one_hot',
