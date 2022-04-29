@@ -261,7 +261,10 @@ class StarmniBot(sc2.BotAI):
                         break  # TODO: Eventually I'd like to pop(pos_ind) off of the list...
                     else: # failed to place building?
                         print("I can't build there!")
-                        break
+                        positions_for_depots_idx += 1
+                        if positions_for_depots_idx >= len(self.positions_for_depots):
+                            break
+                        target_pt = self.positions_for_depots[positions_for_depots_idx]
                         # self.positions_for_depots.pop(positions_for_depots_idx)
                 try:
                     # If can place and psionic covers (or is pylon)
