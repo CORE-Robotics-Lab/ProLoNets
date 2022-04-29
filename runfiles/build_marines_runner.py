@@ -24,7 +24,7 @@ import traceback
 import random
 
 DEBUG = False
-SUPER_DEBUG = False
+SUPER_DEBUG = True
 if SUPER_DEBUG:
     DEBUG = True
 
@@ -84,14 +84,17 @@ class StarmniBot(sc2.BotAI):
                 vector = min_pos.direction_vector(our_center)
             #p0 = our_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
             # TODO: fix the locations to the true locations. this will require much trial and error
-            for i in range(0, tiles_x):
-                for j in range(0, tiles_y):
+            for i in np.arange(0, tiles_x + 20, 0.5):
+                for j in np.arange(0, tiles_y + 20, 0.5):
                     pos = Point2((i*tilesize, j*tilesize))
                     self.positions_for_depots.append(pos)
                     self.positions_for_buildings.append(pos)
 
             self.positions_for_depots.sort(key=lambda a: our_center.distance_to(a))
             self.positions_for_buildings.sort(key=lambda a: self.start_location.distance_to(a))
+
+            print(self.positions_for_depots)
+            # quit()
 
             await self.chat_send("ProLo")
             self.corners = [Point2(Pointlike([min_x, max_y])),
@@ -203,7 +206,7 @@ class StarmniBot(sc2.BotAI):
         """
         self.debug_count += 1
 
-        if self.debug_count % 100 == 0:
+        if self.debug_count % 10 == 0:
             hard_coded_choice = 1
         else:
             hard_coded_choice = 1
@@ -239,7 +242,10 @@ class StarmniBot(sc2.BotAI):
             else:
                 target_pt = self.positions_for_buildings[0]
                 pos_ind = 0
-            target_pt = random.choice(self.positions_for_depots)
+            positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
+            target_pt = self.positions_for_depots[positions_for_depots_idx]
+            print("HELLO!", len(self.positions_for_depots))
+            # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
                     success = await self.build_building(unit_choice, None)
@@ -255,6 +261,7 @@ class StarmniBot(sc2.BotAI):
                     elif await self.can_place(index_to_unit[unit_choice], target_pt):
                         break  # TODO: Eventually I'd like to pop(pos_ind) off of the list...
                     else: # failed to place building?
+                        self.positions_for_depots.pop(positions_for_depots_idx)
                         pos_ind += 1
                         if unit_choice == 1:
                             if pos_ind >= len(self.positions_for_depots):
@@ -330,17 +337,22 @@ class StarmniBot(sc2.BotAI):
                 return FAILED_REWARD
 
             else:
-                pos_dist = random.random()*2 + 3
-                # pos_dist = 0.5
-                pos = placement_location.position.to2.towards(random.choice(self.corners), pos_dist)
+                if placement_location is None:
+                    pos_dist = random.random()*2 + 3
+                    # pos_dist = 0.5
+                    pos = placement_location.position.to2.towards(random.choice(self.corners), pos_dist)
+                else:
+                    pos = placement_location
                 worker = self.select_build_worker(pos, force=True)
+                print("worker:", worker)
                 if worker is not None:
                     self.action_buffer.append(worker.build(building_target, pos))
                     # print('action buffer len:', len(self.action_buffer))
                     # await self.build(building_target, near=pos)
                     if building_target == UnitTypeId.SUPPLYDEPOT:
-                        return SUCCESS_BUILD_REWARD*0.1
                         print('you did it! maybe...')
+                        return SUCCESS_BUILD_REWARD*0.1
+
                     return SUCCESS_BUILD_REWARD
                 else:
                     return FAILED_REWARD
