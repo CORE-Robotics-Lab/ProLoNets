@@ -205,10 +205,10 @@ class StarmniBot(sc2.BotAI):
         """
         self.debug_count += 1
 
-        if self.debug_count % 10 == 0:
-            hard_coded_choice = 1
-        else:
-            hard_coded_choice = 1
+        # if self.debug_count % 10 == 0:
+        #     hard_coded_choice = 1
+        # else:
+        #     hard_coded_choice = 1
 
         unit_choice = hard_coded_choice
         if SUPER_DEBUG:
@@ -243,7 +243,7 @@ class StarmniBot(sc2.BotAI):
                 pos_ind = 0
             positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
             target_pt = self.positions_for_depots[positions_for_depots_idx]
-            print("HELLO!", len(self.positions_for_depots), target_pt)
+            print("depot locations remaining:", len(self.positions_for_depots), "target_pt:", target_pt)
             # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
