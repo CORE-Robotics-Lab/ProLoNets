@@ -262,18 +262,9 @@ class StarmniBot(sc2.BotAI):
                     elif await self.can_place(index_to_unit[unit_choice], target_pt):
                         break  # TODO: Eventually I'd like to pop(pos_ind) off of the list...
                     else: # failed to place building?
+                        print("I can't build there!")
+                        break
                         # self.positions_for_depots.pop(positions_for_depots_idx)
-                        pos_ind += 1
-                        if unit_choice == 1:
-                            if pos_ind >= len(self.positions_for_depots):
-                                target_pt = await self.find_placement(index_to_unit[unit_choice], self.units(UnitTypeId.COMMANDCENTER).random.position)
-                                break
-                            target_pt = self.positions_for_depots[pos_ind]
-                        else:
-                            if pos_ind >= len(self.positions_for_buildings):
-                                target_pt = await self.find_placement(index_to_unit[unit_choice], self.units(UnitTypeId.SUPPLYDEPOT).random.position)
-                                break
-                            target_pt = self.positions_for_buildings[pos_ind]
                 try:
                     # If can place and psionic covers (or is pylon)
                     success = await self.build_building(unit_choice, target_pt)
