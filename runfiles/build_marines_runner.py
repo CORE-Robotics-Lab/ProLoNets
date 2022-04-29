@@ -68,14 +68,13 @@ class StarmniBot(sc2.BotAI):
             base_height = self._game_info.terrain_height[self.game_info.map_center.rounded]
 
             # tilesize given as largest building we would build being a 3x3 and 1 tile wide path for units
-            tilesize = 4
+            tilesize_x  = 4
+            tilesize_y = 3
             #min_x, min_y, max_x, max_y = self.game_info.playable_area
             #hardcoded as burnysc2 clearly has a bug and is returning entirely different values for play area
             min_x, min_y, max_x, max_y = 20, 17, 50, 39
             range_x = max_x - min_x
             range_y = max_y - min_y
-            tiles_x = range_x // tilesize
-            tiles_y = range_y // tilesize
 
             initial_mineral_field_search_radius = 16
             min_pos = self.state.mineral_field.closer_than(initial_mineral_field_search_radius, our_center).center
@@ -84,9 +83,9 @@ class StarmniBot(sc2.BotAI):
                 vector = min_pos.direction_vector(our_center)
             #p0 = our_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
             # TODO: fix the locations to the true locations. this will require much trial and error
-            for i in np.arange(0, tiles_x + 20, 0.5):
-                for j in np.arange(0, tiles_y + 20, 0.5):
-                    pos = Point2((i*tilesize, j*tilesize))
+            for i in np.arange(21, 50, 4):
+                for j in np.arange(17, 39, 3):
+                    pos = Point2((i, j))
                     self.positions_for_depots.append(pos)
                     self.positions_for_buildings.append(pos)
 

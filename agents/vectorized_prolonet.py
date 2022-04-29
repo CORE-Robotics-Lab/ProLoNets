@@ -8,7 +8,7 @@ import math
 
 import matplotlib.pyplot as plt
 import networkx as nx
-import pydot
+# import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 
 
