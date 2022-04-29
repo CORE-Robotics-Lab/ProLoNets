@@ -83,6 +83,63 @@ def get_player_state(state_in):
     return sorted_observed_player_state
 
 
+def get_human_readable_mapping():
+    idx_to_name = {}
+    name_to_idx = {}
+
+    idx = 0
+
+    # purpose is to make mappings between human-readable names and indices in the statespace:
+    # self.prev_state = np.concatenate((current_state,
+    #                                   my_unit_type_arr,
+    #                                   enemy_unit_type_arr, (not using)
+    #                                   pending,
+    #                                   last_act))
+
+    # current_state
+    current_state_names = [
+        'army_count',
+        'food_army',
+        'food_cap',
+        'food_used',
+        'idle_worker_count',
+        'larva_count',
+        'minerals',
+        'vespene',
+        'warp_gate_count'
+    ]
+
+    my_unit_type_names = []
+    for e in MY_POSSIBLES:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        my_unit_type_names.append(e)
+
+
+
+    for e in current_state_names + my_unit_type_names:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        print(e)
+        idx_to_name[idx] = e
+        name_to_idx[e] = idx
+        idx += 1
+
+    # pending
+    for e in my_unit_type_names:
+        e = "PENDING_" + e
+        idx_to_name[idx] = e
+        name_to_idx[e] = idx
+        idx += 1
+
+    # last act
+    e = 'last_act'
+    idx_to_name[idx] = e
+    name_to_idx[e] = idx
+    idx += 1
+
+    return idx_to_name, name_to_idx
+
 def get_unit_data(unit_in):
     if unit_in is None:
         return [-1, -1, -1, -1]
