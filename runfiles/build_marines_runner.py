@@ -236,14 +236,16 @@ class StarmniBot(sc2.BotAI):
                 # Gas collectors will automatically move onto vespene geysers
                 target_pt = None
             elif unit_choice == 1:
-                target_pt = random.choice(self.positions_for_depots)
+                positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
+                target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
             else:
-                target_pt = self.positions_for_buildings[0]
+                positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
+                target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
             positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
             target_pt = self.positions_for_depots[positions_for_depots_idx]
-            print("depot locations remaining:", len(self.positions_for_depots), "target_pt:", target_pt)
+            print("depot locations remaining:", len(self.positions_for_depots))
             # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
@@ -260,7 +262,7 @@ class StarmniBot(sc2.BotAI):
                     elif await self.can_place(index_to_unit[unit_choice], target_pt):
                         break  # TODO: Eventually I'd like to pop(pos_ind) off of the list...
                     else: # failed to place building?
-                        self.positions_for_depots.pop(positions_for_depots_idx)
+                        # self.positions_for_depots.pop(positions_for_depots_idx)
                         pos_ind += 1
                         if unit_choice == 1:
                             if pos_ind >= len(self.positions_for_depots):
