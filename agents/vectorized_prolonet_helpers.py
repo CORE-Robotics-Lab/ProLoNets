@@ -9,116 +9,146 @@ from runfiles.build_marines_helpers import TYPES
 
 def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=False):
     dim_in = len(TYPES)
+    # dim_in = 30
     dim_out = 10
-
-    #food_cap - food_used < 4 go left
-    #-food_cap + food_used > -4 go left
-    #-food_cap + food_used-4 > go left
-    w0 = np.zeros(dim_in)
-    w0[TYPES.FOOD_CAP] = -1  # negative food capacity
-    w0[TYPES.FOOD_USED] = 1  # plus food used = negative food available
-    c0 = [-4]  # > -4  (so if positive < 4)
-
-    #scv_count < 18 go left
-    #-scv_count > -18 go left
-    #-scv_count-18 > 0 go left
-    w1 = np.zeros(dim_in)
-    w1[TYPES.SCV] = -1
-    c1 = [-18]
-
-    #barracks < 1 go left
-    #-barracks > -1 go left
-    w2 = np.zeros(dim_in)
-    w2[TYPES.BARRACKS] = -1
-    c2 = [-1]
-
-    #barracks - pending_marines > 0 go left
-    w3 = np.zeros(dim_in)
-    w3[TYPES.BARRACKS] = 1
-    w3[TYPES.PENDING_MARINE] = -1
-    c3 = [0]
-
-    init_weights = [
-        w0,
-        w1,
-        w2,
-        w3,
-    ]
-    init_comparators = [
-        c0,
-        c1,
-        c2,
-        c3,
-    ]
-
-    if dist == 'one_hot':
-        leaf_base_init_val = 0.
-        leaf_target_init_val = 1.
-    elif dist == 'soft_hot':
-        leaf_base_init_val = 0.1 / (max(dim_out - 1, 1))
-        leaf_target_init_val = 0.9
-    else:  # uniform
-        leaf_base_init_val = 1.0 / dim_out
-        leaf_target_init_val = 1.0 / dim_out
-    leaf_base = [leaf_base_init_val] * dim_out
-
-    # Supply
-    l0 = [[0], [], leaf_base.copy()]
-    l0[-1][41] = leaf_target_init_val
-    l0[-1][39] = leaf_target_init_val
-
-    # SCV
-    l1 = [[1], [0], leaf_base.copy()]
-    l1[-1][40] = leaf_target_init_val
-
-    # Barracks initial
-    l2 = [[2], [0, 1], leaf_base.copy()]
-    l2[-1][39] = leaf_target_init_val
-
-    # Barracks busy
-    # Marines
-    l3 = [[3], [0, 1, 2], leaf_base.copy()]
-    l3[-1][42] = leaf_target_init_val
-
-    # Barracks
-    l4 = [[], [0, 1, 2, 3], leaf_base.copy()]
-    l4[-1][1] = leaf_target_init_val
-
-
-    init_leaves = [
-        l1,
-        l2,
-        l3,
-        l4,
-        l5,
-    ]
 
     if randomized:
         init_weights = None
         init_comparators = None
         init_selectors = None
         init_leaves = 16
-    actor = ProLoNet(input_dim=dim_in,
-                     output_dim=dim_out,
-                     weights=init_weights,
-                     comparators=init_comparators,
-                     selectors=init_selectors,
-                     leaves=init_leaves,
-                     alpha=1,
-                     vectorized=True,
-                     device='cuda' if use_gpu else 'cpu',
-                     is_value=False)
-    critic = ProLoNet(input_dim=dim_in,
-                      output_dim=dim_out,
-                      weights=init_weights,
-                      comparators=init_comparators,
-                      selectors=init_selectors,
-                      leaves=init_leaves,
-                      alpha=1,
-                      vectorized=True,
-                      device='cuda' if use_gpu else 'cpu',
-                      is_value=True)
-    return actor, critic
+        actor = ProLoNet(input_dim=dim_in,
+                         output_dim=dim_out,
+                         weights=init_weights,
+                         comparators=init_comparators,
+                         selectors=init_selectors,
+                         leaves=init_leaves,
+                         alpha=1,
+                         vectorized=True,
+                         device='cuda' if use_gpu else 'cpu',
+                         is_value=False)
+        critic = ProLoNet(input_dim=dim_in,
+                          output_dim=dim_out,
+                          weights=init_weights,
+                          comparators=init_comparators,
+                          selectors=init_selectors,
+                          leaves=init_leaves,
+                          alpha=1,
+                          vectorized=True,
+                          device='cuda' if use_gpu else 'cpu',
+                          is_value=True)
+        return actor, critic
+    else:
+        pass
+        #food_cap - food_used < 4 go left
+        #-food_cap + food_used > -4 go left
+        #-food_cap + food_used-4 > go left
+        w0 = np.zeros(dim_in)
+        print("w0:", w0)
+        print("Food_cap:", TYPES.FOOD_CAP.value)
+        w0[TYPES.FOOD_CAP.value] = -1  # negative food capacity
+        w0[TYPES.FOOD_USED.value] = 1  # plus food used = negative food available
+        c0 = [-4]  # > -4  (so if positive < 4)
+
+        #scv_count < 18 go left
+        #-scv_count > -18 go left
+        #-scv_count-18 > 0 go left
+        w1 = np.zeros(dim_in)
+        w1[TYPES.SCV.value] = -1
+        c1 = [-18]
+
+        #barracks < 1 go left
+        #-barracks > -1 go left
+        w2 = np.zeros(dim_in)
+        w2[TYPES.BARRACKS.value] = -1
+        c2 = [-1]
+
+        #barracks - pending_marines > 0 go left
+        w3 = np.zeros(dim_in)
+        w3[TYPES.BARRACKS.value] = 1
+        w3[TYPES.PENDING_MARINE.value] = -1
+        c3 = [0]
+
+        init_weights = [
+            w0,
+            w1,
+            w2,
+            w3,
+        ]
+        init_comparators = [
+            c0,
+            c1,
+            c2,
+            c3,
+        ]
+
+        if dist == 'one_hot':
+            leaf_base_init_val = 0.
+            leaf_target_init_val = 1.
+        elif dist == 'soft_hot':
+            leaf_base_init_val = 0.1 / (max(dim_out - 1, 1))
+            leaf_target_init_val = 0.9
+        else:  # uniform
+            leaf_base_init_val = 1.0 / dim_out
+            leaf_target_init_val = 1.0 / dim_out
+        leaf_base = [leaf_base_init_val] * dim_out
+
+        # Supply
+        l0 = [[0], [], leaf_base.copy()]
+        l0[-1][41] = leaf_target_init_val
+        l0[-1][39] = leaf_target_init_val
+
+        # SCV
+        l1 = [[1], [0], leaf_base.copy()]
+        l1[-1][40] = leaf_target_init_val
+
+        # Barracks initial
+        l2 = [[2], [0, 1], leaf_base.copy()]
+        l2[-1][39] = leaf_target_init_val
+
+        # Barracks busy
+        # Marines
+        l3 = [[3], [0, 1, 2], leaf_base.copy()]
+        l3[-1][42] = leaf_target_init_val
+
+        # Barracks
+        l4 = [[], [0, 1, 2, 3], leaf_base.copy()]
+        l4[-1][1] = leaf_target_init_val
+
+
+        init_leaves = [
+            l1,
+            l2,
+            l3,
+            l4,
+        ]
+
+        if randomized:
+            init_weights = None
+            init_comparators = None
+            init_selectors = None
+            init_leaves = 16
+        actor = ProLoNet(input_dim=dim_in,
+                         output_dim=dim_out,
+                         weights=init_weights,
+                         comparators=init_comparators,
+                         selectors=init_selectors,
+                         leaves=init_leaves,
+                         alpha=1,
+                         vectorized=True,
+                         device='cuda' if use_gpu else 'cpu',
+                         is_value=False)
+        critic = ProLoNet(input_dim=dim_in,
+                          output_dim=dim_out,
+                          weights=init_weights,
+                          comparators=init_comparators,
+                          selectors=init_selectors,
+                          leaves=init_leaves,
+                          alpha=1,
+                          vectorized=True,
+                          device='cuda' if use_gpu else 'cpu',
+                          is_value=True)
+        return actor, critic
 
 def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
     dim_in = 194

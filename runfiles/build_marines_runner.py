@@ -23,8 +23,8 @@ from datetime import datetime
 import traceback
 import random
 
-DEBUG = True
-SUPER_DEBUG = True
+DEBUG = False
+SUPER_DEBUG = False
 if SUPER_DEBUG:
     DEBUG = True
 
@@ -94,10 +94,10 @@ class StarmniBot(sc2.BotAI):
             self.positions_for_buildings.sort(key=lambda a: self.start_location.distance_to(a))
 
             await self.chat_send("ProLo")
-            #self.corners = [Point2(Pointlike([min_x, max_y])),
-            #                Point2(Pointlike([min_x, min_y])),
-            #                Point2(Pointlike([max_x, max_y])),
-            #                Point2(Pointlike([max_x, min_y]))]
+            self.corners = [Point2(Pointlike([min_x, max_y])),
+                           Point2(Pointlike([min_x, min_y])),
+                           Point2(Pointlike([max_x, max_y])),
+                           Point2(Pointlike([max_x, min_y]))]
             #closest_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[0])
             #closest = 0
             #for corner in range(1, len(self.corners)):
@@ -147,7 +147,7 @@ class StarmniBot(sc2.BotAI):
         # TODO: abstract the act of getting an action into our own agent
         self.last_reward = await self.activate_sub_bot(action)  # delegates the specific action to the baby bots below
         self.last_reward -= STEP_PENALTY
-        print(self.last_reward)
+        # print(self.last_reward)
         self.agent.save_reward(self.last_reward)
         self.last_sc_action = action
         try:
@@ -161,31 +161,6 @@ class StarmniBot(sc2.BotAI):
 
     async def activate_sub_bot(self, general_bot_out):
 
-        """elif general_bot_out == 42:  # all these actions are useless for Make Marines
-                    if SUPER_DEBUG:
-                        print("Scouting")
-                    try:
-                        return await self.send_scout()
-                    except Exception as e:
-                        print("Scouting Exception", e)
-                        return FAILED_REWARD
-                elif general_bot_out == 41:
-                    if SUPER_DEBUG:
-                        print("Defending")
-                    try:
-                        return await self.defend()
-                    except Exception as e:
-                        print("Defending exception", e)
-                        return FAILED_REWARD
-                elif general_bot_out == 39 or general_bot_out == 13:
-                    if SUPER_DEBUG:
-                        print("Attacking")
-            # return await self.activate_combat()
-                    try:
-                        return await self.army_attack()
-                    except Exception as e:
-                        print("Attacking Exception", e)
-                        return FAILED_REWARD"""
 
         if general_bot_out == 43:
             if SUPER_DEBUG:
@@ -271,7 +246,6 @@ class StarmniBot(sc2.BotAI):
                 except Exception as e:
                     if DEBUG:
                         print("exception (build_building None target)", e)
-                        quit()
                     success = FAILED_REWARD
             else:  # the target building is not something that automatically snaps to location
                 while True:
@@ -341,32 +315,6 @@ class StarmniBot(sc2.BotAI):
                 print("Building a", building_target.name, "at (", placement_location.position.x, ",", placement_location.position.y, ")")
             else:
                 print("Building a", building_target.name)
-        """ boilerplate for the warpgate code
-                    elif building_target == UnitTypeId.WARPGATE:  # TODO: hack this into a way of handling add-ons?
-                        for gateway in self.units(UnitTypeId.GATEWAY).ready:
-                            abilities = await self.get_available_abilities(gateway)
-                            if AbilityId.MORPH_WARPGATE in abilities:
-                                if self.can_afford(AbilityId.MORPH_WARPGATE):
-                                    self.action_buffer.append(gateway(AbilityId.MORPH_WARPGATE))
-                                    return SUCCESS_BUILD_REWARD
-                            else:
-                                if self.units(UnitTypeId.CYBERNETICSCORE).exists:
-                                    core = self.units(UnitTypeId.CYBERNETICSCORE).random
-                                    abilities = await self.get_available_abilities(core)
-                                    if AbilityId.RESEARCH_WARPGATE in abilities:
-                                            self.action_buffer.append(core(AbilityId.RESEARCH_WARPGATE))
-                                            return SUCCESS_BUILD_REWARD
-                        return FAILED_REWARD
-                    elif building_target == UnitTypeId.COMMANDCENTER:
-                        location = await self.get_next_expansion()
-                        location = await self.find_placement(UnitTypeId.COMMANDCENTER, location, placement_step=1)
-                        worker = self.select_build_worker(location, force=True)
-                        if worker is not None:
-                            self.action_buffer.append(worker.build(UnitTypeId.COMMANDCENTER, location))
-                            return SUCCESS_BUILD_REWARD
-                        else:
-                            return FAILED_REWARD
-                            """
         if self.can_afford(building_target):
             if building_target == UnitTypeId.REFINERY:
                 ccs = self.units(UnitTypeId.COMMANDCENTER).ready
@@ -385,11 +333,11 @@ class StarmniBot(sc2.BotAI):
                 pos_dist = random.random()*2 + 3
                 # pos_dist = 0.5
                 pos = placement_location.position.to2.towards(random.choice(self.corners), pos_dist)
-
                 worker = self.select_build_worker(pos, force=True)
                 if worker is not None:
                     self.action_buffer.append(worker.build(building_target, pos))
-                    await self.build(building_target, near=pos)
+                    # print('action buffer len:', len(self.action_buffer))
+                    # await self.build(building_target, near=pos)
                     if building_target == UnitTypeId.SUPPLYDEPOT:
                         return SUCCESS_BUILD_REWARD*0.1
                         print('you did it! maybe...')
@@ -596,49 +544,6 @@ def run_episode(q, main_agent):
     return [reward_sum, bot.agent.replay_buffer.__getstate__()]
 
 
-# def main(episodes, agent_in, num_processes, reset_on_fail=False):
-#     running_reward_array = []
-#     # lowered = False
-#     agent = agent_in.duplicate()
-# #     mp.set_start_method('spawn')
-#     for episode in range(episodes):
-#         successful_runs = 0
-#         master_reward, reward, running_reward = 0, 0, 0
-#         processes = []
-#         queueue = mp.Manager().Queue()
-#         for proc in range(num_processes):
-#             p = mp.Process(target=run_episode, args=(queueue, agent))
-#             p.start()
-#             processes.append(p)
-#         for p in processes:
-#             p.join()
-#         while not queueue.empty():
-#             try:
-#                 fake_out = queueue.get()
-#             except MemoryError as e:
-#                 print(e)
-#                 fake_out = [-13, None]
-#             if fake_out[0] != -13:
-#                 master_reward += fake_out[0]
-#                 running_reward_array.append(fake_out[0])
-#                 agent.replay_buffer.extend(fake_out[1])
-#                 successful_runs += 1
-#
-#         if successful_runs > 0:
-#             if (reset_on_fail and master_reward > 0) or not reset_on_fail:
-#                 reward = master_reward / float(successful_runs)
-#                 agent.end_episode(reward, num_processes)
-#                 running_reward = sum(running_reward_array[-100:]) / float(min(100.0, len(running_reward_array)))
-#                 agent.save('../models/last')
-#             else:
-#                 agent = agent_in.duplicate()
-#                 print("Resetting...")
-#
-#         if episode % 50 == 0:
-#             print(f'Episode {episode}  Last Reward: {reward}  Average Reward: {running_reward}')
-#             # print(f"Running {num_processes} concurrent simulations per episode")
-#     return running_reward_array
-
 
 def bernoulli_main(episodes, agent_in, num_processes):
     def bernoulli_test(p, n, k, alpha):
@@ -747,7 +652,7 @@ if __name__ == '__main__':
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
     # torch.set_num_threads(NUM_PROCS)
     #dim_in = 14
-    dim_in = len(build_marines_helpers.TYPES)
+    dim_in = 30
     dim_out = 10
     bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
     mp.set_sharing_strategy('file_system')
