@@ -63,61 +63,49 @@ class StarmniBot(sc2.BotAI):
         if self.units(UnitTypeId.COMMANDCENTER).amount < 1 and self.workers.amount < 1:
             await self._client.leave()
         if iteration == 0:
+            # all mineral finding done relative to first command center
+            our_center = self.units(UnitTypeId.COMMANDCENTER).first.position
             base_height = self._game_info.terrain_height[self.game_info.map_center.rounded]
-            min_x, min_y, max_x, max_y = self.game_info.playable_area
+
+            # tilesize given as largest building we would build being a 3x3 and 1 tile wide path for units
+            tilesize = 4
+            #min_x, min_y, max_x, max_y = self.game_info.playable_area
+            #hardcoded as burnysc2 clearly has a bug and is returning entirely different values for play area
+            min_x, min_y, max_x, max_y = 20, 17, 50, 39
+            range_x = max_x - min_x
+            range_y = max_y - min_y
+            tiles_x = range_x // tilesize
+            tiles_y = range_y // tilesize
+
             initial_mineral_field_search_radius = 16
-            print("game_info.map_center", self.game_info.map_center)
-            print("self.state.mineral_field", self.state.mineral_field)
-            print("closer_than", self.state.mineral_field.closer_than(initial_mineral_field_search_radius, self.game_info.map_center))
-            min_pos = self.state.mineral_field.closer_than(initial_mineral_field_search_radius, self.game_info.map_center).center
-            vector = min_pos.direction_vector(self.game_info.map_center)
+            min_pos = self.state.mineral_field.closer_than(initial_mineral_field_search_radius, our_center).center
+            vector = min_pos.direction_vector(our_center)
             if vector.x == 0 or vector.y == 0:
-                vector = min_pos.direction_vector(self.game_info.map_center)
-            p0 = self.game_info.map_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
+                vector = min_pos.direction_vector(our_center)
+            #p0 = our_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
             # TODO: fix the locations to the true locations. this will require much trial and error
-            p1 = p0 + vector * Point2((4, 6))
-            b0 = p0 + vector * Point2((0.5, 2.5))
-            b1 = b0 + vector * Point2((0, 3))
-            b2 = p0 + vector * Point2((4.5, 0.5))
-            b3 = b2 + vector * Point2((0, 3))
-            my_range = 100
-            for y in np.arange(-my_range, my_range, 1):
-                for x in np.arange(-my_range, my_range, 1):
-                    if x < 0 and y < 0:
-                        continue
-                    for pos in [p0 + vector * Point2((x * 1, y * 1)), p1 + vector * Point2((x * 1, y * 1))]:
+            for i in range(0, tiles_x):
+                for j in range(0, tiles_y):
+                    pos = Point2((i*tilesize, j*tilesize))
+                    self.positions_for_depots.append(pos)
+                    self.positions_for_buildings.append(pos)
 
-                        if 0 < pos.x < max_x and 0 < pos.y < max_y:
-                            # print('test:', pos.x, max_x, pos.y, max_y)
-                            # print(pos.rounded, self._game_info.terrain_height[pos.rounded], base_height)
-                            if self._game_info.terrain_height[pos.rounded] == base_height or True:
-                                self.positions_for_depots.append(pos)
-
-                                # print('yay!')
-                    for pos in [b0 + vector * Point2((x * 8, y * 9)), b1 + vector * Point2((x * 8, y * 9)),
-                                b2 + vector * Point2((x * 8, y * 9)), b3 + vector * Point2((x * 8, y * 9))]:
-                        if 0 < pos.x < max_x and 0 < pos.y < max_y and \
-                                (self._game_info.terrain_height[pos.rounded] == base_height or True):
-                            self.positions_for_buildings.append(pos)
-            self.positions_for_depots.sort(key=lambda a: self.start_location.distance_to(a))
-            # print("\n\n\n\n\n\n", self.positions_for_buildings)
-            print(self.positions_for_depots)
-            # quit()
+            self.positions_for_depots.sort(key=lambda a: our_center.distance_to(a))
             self.positions_for_buildings.sort(key=lambda a: self.start_location.distance_to(a))
 
             await self.chat_send("ProLo")
-            self.corners = [Point2(Pointlike([min_x, max_y])),
-                            Point2(Pointlike([min_x, min_y])),
-                            Point2(Pointlike([max_x, max_y])),
-                            Point2(Pointlike([max_x, min_y]))]
-            closest_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[0])
-            closest = 0
-            for corner in range(1, len(self.corners)):
-                corner_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[corner])
-                if corner_dist < closest_dist:
-                    closest = corner
-                    closest_dist = corner_dist
-            del self.corners[closest]  # is this just used for scouting? In that case, we don't need it.
+            #self.corners = [Point2(Pointlike([min_x, max_y])),
+            #                Point2(Pointlike([min_x, min_y])),
+            #                Point2(Pointlike([max_x, max_y])),
+            #                Point2(Pointlike([max_x, min_y]))]
+            #closest_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[0])
+            #closest = 0
+            #for corner in range(1, len(self.corners)):
+            #    corner_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[corner])
+            #    if corner_dist < closest_dist:
+            #        closest = corner
+            #        closest_dist = corner_dist
+            #del self.corners[closest]  # is this just used for scouting? In that case, we don't need it.
 
         self.itercount += 1
         # if self.itercount % 10 != 0:
@@ -128,7 +116,7 @@ class StarmniBot(sc2.BotAI):
         # print("SC Helpers Current State:", current_state)
         current_state = np.array(current_state)
         my_unit_type_arr = build_marines_helpers.my_units_to_type_count(self.units)
-        enemy_unit_type_arr = build_marines_helpers.enemy_units_to_type_count(self.known_enemy_units)
+        #enemy_unit_type_arr = build_marines_helpers.enemy_units_to_type_count(self.known_enemy_units)
         # Get pending
         pending = []
         for unit_type in build_marines_helpers.MY_POSSIBLES:
@@ -140,12 +128,12 @@ class StarmniBot(sc2.BotAI):
         # Reshape all into batch of 1
         my_unit_type_arr = my_unit_type_arr.reshape(-1)  # batch_size, len
         current_state = current_state.reshape(-1)
-        enemy_unit_type_arr = enemy_unit_type_arr.reshape(-1)
+        #enemy_unit_type_arr = enemy_unit_type_arr.reshape(-1)
         pending = np.array(pending).reshape(-1)
         last_act = np.array([0]).reshape(-1)
         self.prev_state = np.concatenate((current_state,
                                           my_unit_type_arr,
-                                          enemy_unit_type_arr,
+                                          #enemy_unit_type_arr,
                                           pending,
                                           last_act))
 
@@ -758,7 +746,8 @@ if __name__ == '__main__':
     RANDOM = args.rand  # Applies for 'prolo' random init or no? Default false
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
     # torch.set_num_threads(NUM_PROCS)
-    dim_in = 142
+    #dim_in = 14
+    dim_in = len(build_marines_helpers.TYPES)
     dim_out = 10
     bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
     mp.set_sharing_strategy('file_system')

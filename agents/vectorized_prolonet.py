@@ -3,6 +3,13 @@ import torch.nn as nn
 import torch
 import numpy as np
 import typing as t
+import random
+import math
+
+import matplotlib.pyplot as plt
+import networkx as nx
+import pydot
+from networkx.drawing.nx_pydot import graphviz_layout
 
 
 class ProLoNet(nn.Module):
@@ -54,6 +61,70 @@ class ProLoNet(nn.Module):
         self.sig = nn.Sigmoid()
         self.softmax = nn.Softmax(dim=-1)
         self.is_value = is_value
+        #self.visualize_prolonet()
+
+    def visualize_prolonet(self):
+
+        #all_nodes = []
+        #for leaf in self.leaf_init_information:
+        #    all_nodes += leaf[0] + leaf[1]
+        #depth = int(math.log2(max(all_nodes)) + 1)
+        #g = nx.balanced_tree(2, depth)
+
+        #for node in g.nodes:
+        #    g.nodes[node]["color"] = "grey"
+
+        #nodes_to_remove = set(g.nodes).difference(set(all_nodes))
+
+        #print(set(all_nodes))
+        #for node in nodes_to_remove:
+        #    g.remove_node(node)
+
+        #for leaf in self.leaf_init_information:
+        #    deepest_node = max(leaf[0] + leaf[1])
+        #    g.nodes[deepest_node]["color"] = "blue"
+        #    # add leaf node
+        #    ind = deepest_node * 2 + 1 if deepest_node in leaf[0] else deepest_node * 2 + 2
+        #    g.add_node(ind, color="green")
+        #    g.add_edge(deepest_node, ind)
+        #    # recurse from last internal node to root
+        #    while deepest_node != 0:
+        #        parent = (deepest_node - 1)//2
+        #        g.nodes[parent]["color"] = "blue"
+        #        deepest_node = parent
+
+        #pos = graphviz_layout(g, prog="dot")
+        #color_list = [g.nodes[node]["color"] for node in g.nodes()]
+        #nx.draw(g, pos, node_color=color_list, with_labels=True)
+        #plt.show()
+
+        g = nx.DiGraph()
+
+        for leaf in self.leaf_init_information:
+            deepest_node = max(leaf[0] + leaf[1])
+            g.add_node(deepest_node, color="blue")
+            # add leaf node
+            ind = deepest_node * 2 + 1 if deepest_node in leaf[0] else deepest_node * 2 + 2
+            g.add_node(ind, color="green")
+            g.add_edge(deepest_node, ind)
+            # recurse from last internal node to root
+            while deepest_node != 0:
+                parent = (deepest_node - 1)//2
+                g.add_node(parent, color="blue")
+                g.add_edge(parent, deepest_node)
+                deepest_node = parent
+
+        pos = graphviz_layout(g, prog="dot")
+        #pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot', args='-Grankdir=LR')
+        color_list = [g.nodes[node]["color"] for node in g.nodes()]
+        nx.draw(g, pos, node_color=color_list, with_labels=True)
+        plt.show()
+
+        # sorting of nodes does not affect order in visualized graph
+
+        # could just make blot of all ranks given in leaves and add edges in binary tree order which now that I think about
+        # it is about as bad in cost as doing what I did below of just recursing but it has not duplicates but it would
+        # just deal with those in adding to a list anyways so it doesnt matter
 
     def init_comparators(self, comparators):
         if comparators is None:

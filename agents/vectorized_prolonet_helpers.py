@@ -2,8 +2,310 @@
 import numpy as np
 import sys
 sys.path.insert(0, '../')
-from agents.vectorized_prolonet import ProLoNet
 import torch
+
+from agents.vectorized_prolonet import ProLoNet
+from runfiles.build_marines_helpers import TYPES
+
+def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=False):
+    dim_in = len(TYPES)
+    dim_out = 10
+
+    #food_cap - food_used < 4 go left
+    #-food_cap + food_used > -4 go left
+    #-food_cap + food_used-4 > go left
+    w0 = np.zeros(dim_in)
+    w0[TYPES.FOOD_CAP] = -1  # negative food capacity
+    w0[TYPES.FOOD_USED] = 1  # plus food used = negative food available
+    c0 = [-4]  # > -4  (so if positive < 4)
+
+    #scv_count < 18 go left
+    #-scv_count > -18 go left
+    #-scv_count-18 > 0 go left
+    w1 = np.zeros(dim_in)
+    w1[TYPES.SCV] = -1
+    c1 = [-18]
+
+    #barracks < 1 go left
+    #-barracks > -1 go left
+    w2 = np.zeros(dim_in)
+    w2[TYPES.BARRACKS] = -1
+    c2 = [-1]
+
+    #barracks - pending_marines > 0 go left
+    w3 = np.zeros(dim_in)
+    w3[TYPES.BARRACKS] = 1
+    w3[TYPES.PENDING_MARINE] = -1
+    c3 = [0]
+
+    init_weights = [
+        w0,
+        w1,
+        w2,
+        w3,
+    ]
+    init_comparators = [
+        c0,
+        c1,
+        c2,
+        c3,
+    ]
+
+    if dist == 'one_hot':
+        leaf_base_init_val = 0.
+        leaf_target_init_val = 1.
+    elif dist == 'soft_hot':
+        leaf_base_init_val = 0.1 / (max(dim_out - 1, 1))
+        leaf_target_init_val = 0.9
+    else:  # uniform
+        leaf_base_init_val = 1.0 / dim_out
+        leaf_target_init_val = 1.0 / dim_out
+    leaf_base = [leaf_base_init_val] * dim_out
+
+    # Supply
+    l0 = [[0], [], leaf_base.copy()]
+    l0[-1][41] = leaf_target_init_val
+    l0[-1][39] = leaf_target_init_val
+
+    # SCV
+    l1 = [[1], [0], leaf_base.copy()]
+    l1[-1][40] = leaf_target_init_val
+
+    # Barracks initial
+    l2 = [[2], [0, 1], leaf_base.copy()]
+    l2[-1][39] = leaf_target_init_val
+
+    # Barracks busy
+    # Marines
+    l3 = [[3], [0, 1, 2], leaf_base.copy()]
+    l3[-1][42] = leaf_target_init_val
+
+    # Barracks
+    l4 = [[], [0, 1, 2, 3], leaf_base.copy()]
+    l4[-1][1] = leaf_target_init_val
+
+
+    init_leaves = [
+        l1,
+        l2,
+        l3,
+        l4,
+        l5,
+    ]
+
+    if randomized:
+        init_weights = None
+        init_comparators = None
+        init_selectors = None
+        init_leaves = 16
+    actor = ProLoNet(input_dim=dim_in,
+                     output_dim=dim_out,
+                     weights=init_weights,
+                     comparators=init_comparators,
+                     selectors=init_selectors,
+                     leaves=init_leaves,
+                     alpha=1,
+                     vectorized=True,
+                     device='cuda' if use_gpu else 'cpu',
+                     is_value=False)
+    critic = ProLoNet(input_dim=dim_in,
+                      output_dim=dim_out,
+                      weights=init_weights,
+                      comparators=init_comparators,
+                      selectors=init_selectors,
+                      leaves=init_leaves,
+                      alpha=1,
+                      vectorized=True,
+                      device='cuda' if use_gpu else 'cpu',
+                      is_value=True)
+    return actor, critic
+
+def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
+    dim_in = 194
+    dim_out = 44
+
+    w0 = np.zeros(dim_in)
+    w0[10] = 1  # zealot
+    w0[22] = 1  # voidray
+    c0 = [8]  # > 8
+
+    w1 = np.zeros(dim_in)
+    w1[45:65] = 1  # Enemy Protoss non-buildings
+    w1[82:99] = 1  # Enemy Terran non-buildings
+    w1[118:139] = 1  # Enemy Zerg non-buildings
+    c1 = [2]  # > 4 enemies, potentially under attack?
+
+    w2 = np.zeros(dim_in)
+    w2[4] = 1  # idle workers
+    c2 = [0.5]  # > 0.5
+
+    w3 = np.zeros(dim_in)
+    w3[65:82] = 1  # Enemy Protoss non-buildings
+    w3[99:118] = 1  # Enemy Terran non-buildings
+    w3[139:157] = 1  # Enemy Zerg non-buildings
+    c3 = [0]  # > 0  # know where some enemy structures are
+
+    w4 = np.zeros(dim_in)
+    w4[2] = -1  # negative food capacity
+    w4[3] = 1  # plus food used = negative food available
+    c4 = [-4]  # > -4  (so if positive < 4)
+
+    w5 = np.zeros(dim_in)
+    w5[9] = -1  # probes
+    w5[157] = -1
+    c5 = [-20]  # > -16 == #probes<16
+
+    w6 = np.zeros(dim_in)
+    w6[30] = 1  # ASSIMILATOR
+    w6[178] = 1
+    c6 = [0.5]  # > 0.5
+
+    w7 = np.zeros(dim_in)
+    w7[38] = 1  # STARGATE
+    w7[186] = 1
+    c7 = [0.5]  # > 1.5
+
+    w8 = np.zeros(dim_in)
+    w8[31] = 1  # GATEWAY
+    w8[179] = 1
+    c8 = [0.5]  # > 0.5
+
+    w9 = np.zeros(dim_in)
+    w9[22] = 1  # VOIDRAY
+    w9[170] = 1
+    c9 = [7]  # > 7
+
+    w10 = np.zeros(dim_in)
+    w10[10] = 1  # zealot
+    w10[158] = 1
+    c10 = [2]  # > 3
+
+    w11 = np.zeros(dim_in)
+    w11[34] = 10  # CYBERNETICSCORE
+    w11[182] = 10
+    c11 = [0.5]  # > 0.5
+
+    init_weights = [
+        w0,
+        w1,
+        w2,
+        w3,
+        w4,
+        w5,
+        w6,
+        w7,
+        w8,
+        w9,
+        w10,
+        w11,
+    ]
+    init_comparators = [
+        c0,
+        c1,
+        c2,
+        c3,
+        c4,
+        c5,
+        c6,
+        c7,
+        c8,
+        c9,
+        c10,
+        c11,
+    ]
+    if dist == 'one_hot':
+        leaf_base_init_val = 0.
+        leaf_target_init_val = 1.
+    elif dist == 'soft_hot':
+        leaf_base_init_val = 0.1/(max(dim_out-1, 1))
+        leaf_target_init_val = 0.9
+    else:  # uniform
+        leaf_base_init_val = 1.0/dim_out
+        leaf_target_init_val = 1.0/dim_out
+    leaf_base = [leaf_base_init_val] * dim_out
+
+    l0 = [[0, 1], [], leaf_base.copy()]
+    l0[-1][41] = leaf_target_init_val  # Defend
+    l0[-1][39] = leaf_target_init_val
+
+    l1 = [[2], [0], leaf_base.copy()]
+    l1[-1][40] = leaf_target_init_val  # Mine
+
+    l2 = [[0, 1], [3], leaf_base.copy()]
+    l2[-1][39] = leaf_target_init_val  # Attack
+
+    l3 = [[0], [1, 3], leaf_base.copy()]
+    l3[-1][42] = leaf_target_init_val  # Scout
+
+    l4 = [[4], [0, 2], leaf_base.copy()]
+    l4[-1][1] = leaf_target_init_val  # Pylon
+
+    l5 = [[5], [0, 2, 4], leaf_base.copy()]
+    l5[-1][16] = leaf_target_init_val  # Probe
+
+    l6 = [[], [0, 2, 4, 5, 6, 8], leaf_base.copy()]
+    l6[-1][3] = leaf_target_init_val  # Gateway
+
+    l7 = [[6, 7, 9], [0, 2, 4, 5], leaf_base.copy()]
+    l7[-1][39] = leaf_target_init_val  # Attack
+
+    l8 = [[6, 7], [0, 2, 4, 5, 9], leaf_base.copy()]
+    l8[-1][29] = leaf_target_init_val  # Voidray
+
+    l9 = [[6, 10], [0, 2, 4, 5, 7], leaf_base.copy()]
+    l9[-1][40] = leaf_target_init_val  # Mine (Get vespene)
+
+    l10 = [[6], [0, 2, 4, 5, 7], leaf_base.copy()]
+    l10[-1][10] = leaf_target_init_val  # Stargate
+
+    l11 = [[8], [0, 2, 4, 5, 6, 10], leaf_base.copy()]
+    l11[-1][17] = leaf_target_init_val  # Zealot
+
+    l12 = [[8, 10, 11], [0, 2, 4, 5, 6], leaf_base.copy()]
+    l12[-1][2] = leaf_target_init_val  # Assimilator
+
+    l13 = [[8, 10], [0, 2, 4, 5, 6, 11], leaf_base.copy()]
+    l13[-1][6] = leaf_target_init_val  # Cybernetics Core
+
+    init_leaves = [
+        l1,
+        l2,
+        l3,
+        l4,
+        l5,
+        l10,
+        l6,
+        l7,
+        l8,
+        l9,
+        l10,
+        l11,
+        l12,
+        l13,
+    ]
+    if randomized:
+        init_weights = None
+        init_comparators = None
+        init_leaves = 16
+    actor = ProLoNet(input_dim=dim_in,
+                     output_dim=dim_out,
+                     weights=init_weights,
+                     comparators=init_comparators,
+                     leaves=init_leaves,
+                     alpha=2,
+                     vectorized=False,
+                     device='cuda' if use_gpu else 'cpu',
+                     is_value=False)
+    critic = ProLoNet(input_dim=dim_in,
+                      output_dim=dim_out,
+                      weights=init_weights,
+                      comparators=init_comparators,
+                      leaves=init_leaves,
+                      alpha=1,
+                      vectorized=False,
+                      device='cuda' if use_gpu else 'cpu',
+                      is_value=True)
+    return actor, critic
 
 
 def init_cart_nets(distribution, use_gpu=False, vectorized=False, randomized=False):
@@ -800,37 +1102,6 @@ def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
                       is_value=True)
     return actor, critic
 
-def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=False):
-    dim_in = 142
-    dim_out = 10
-
-    if randomized:
-        init_weights = None
-        init_comparators = None
-        init_selectors = None
-        init_leaves = 16
-
-    actor = ProLoNet(input_dim=dim_in,
-                     output_dim=dim_out,
-                     weights=init_weights,
-                     comparators=init_comparators,
-                     selectors=init_selectors,
-                     leaves=init_leaves,
-                     alpha=1,
-                     vectorized=True,
-                     device='cuda' if use_gpu else 'cpu',
-                     is_value=False)
-    critic = ProLoNet(input_dim=dim_in,
-                      output_dim=dim_out,
-                      weights=init_weights,
-                      comparators=init_comparators,
-                      selectors=init_selectors,
-                      leaves=init_leaves,
-                      alpha=1,
-                      vectorized=True,
-                      device='cuda' if use_gpu else 'cpu',
-                      is_value=True)
-    return actor, critic
 
 
 def init_sc_nets_vectorized(dist='one_hot', use_gpu=False, randomized=False):
