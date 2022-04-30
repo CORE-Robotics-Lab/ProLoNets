@@ -671,7 +671,8 @@ if __name__ == '__main__':
                                     vectorized=VECTORIZED,
                                     randomized=RANDOM,
                                     adversarial=ADVERSARIAL,
-                                    deepen=DEEPEN)
+                                    deepen=DEEPEN,
+                                    deterministic=True)
     elif AGENT_TYPE == 'fc':
         policy_agent = FCNet(input_dim=dim_in,
                              bot_name=bot_name,
