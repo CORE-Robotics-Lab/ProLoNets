@@ -692,6 +692,7 @@ def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=Fa
 
 
     init_leaves = [
+        l0,
         l1,
         l2,
         l3,
