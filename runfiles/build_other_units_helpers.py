@@ -4,7 +4,7 @@ import numpy as np
 from sc2 import Race
 from enum import Enum
 
-class TYPES(Enum):
+class EXPANDED_TYPES(Enum):
     ARMY_COUNT = 0
     FOOD_ARMY = 1
     FOOD_CAP = 2

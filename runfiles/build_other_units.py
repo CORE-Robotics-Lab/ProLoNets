@@ -14,7 +14,7 @@ from agents.prolonet_agent import DeepProLoNet
 from agents.py_djinn_agent import DJINNAgent
 from agents.lstm_agent import LSTMNet
 from agents.baseline_agent import FCNet
-from runfiles import build_marines_helpers
+from runfiles import build_other_units_helpers
 import numpy as np
 import time
 import torch.multiprocessing as mp
@@ -112,15 +112,15 @@ class StarmniBot(sc2.BotAI):
         # if self.itercount % 10 != 0:
         #     return
         # Get current state (minerals, gas, idles, etc.)
-        current_state = build_marines_helpers.get_player_state(self.state)
+        current_state = build_other_units_helpers.get_player_state(self.state)
         # TODO: Modify the get_player_state to return a state that is more useful to building more marines
         # print("SC Helpers Current State:", current_state)
         current_state = np.array(current_state)
-        my_unit_type_arr = build_marines_helpers.my_units_to_type_count(self.units)
+        my_unit_type_arr = build_other_units_helpers.my_units_to_type_count(self.units)
         #enemy_unit_type_arr = build_marines_helpers.enemy_units_to_type_count(self.known_enemy_units)
         # Get pending
         pending = []
-        for unit_type in build_marines_helpers.MY_POSSIBLES:
+        for unit_type in build_other_units_helpers.MY_POSSIBLES:
             if self.already_pending(unit_type):
                 pending.append(1)
             else:
@@ -168,13 +168,13 @@ class StarmniBot(sc2.BotAI):
                 print("Nothing")
             return FAILED_REWARD*0.05
 
-        elif general_bot_out == 40:
+        elif general_bot_out == 11:  # return to mining
             if SUPER_DEBUG:
                 print("Mining")
             try:
                 # return await self.back_to_mining()
                 # first one is idle workers, but what does the second condition mean?
-                if self.prev_state[4] > 0 or self.prev_state[9] > self.prev_state[28]*20:  # what do these states mean?
+                if self.prev_state[4] > 0:  # what do these states mean?
                     await self.distribute_workers()
                     return SUCCESS_MINING_REWARD
                 else:
@@ -581,8 +581,8 @@ if __name__ == '__main__':
     RANDOM = args.rand  # Applies for 'prolo' random init or no? Default false
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
     torch.set_num_threads(NUM_PROCS)
-    dim_in = 30
-    dim_out = 10
+    dim_in = 32
+    dim_out = 12
     bot_name = AGENT_TYPE + '_marines'
     # mp.set_start_method('spawn')
     mp.set_sharing_strategy('file_system')
