@@ -474,51 +474,7 @@ class StarmniBot(sc2.BotAI):
         # await self.chat_send("reset")
         # The reward for a rollout should be proportional to the number of marines present at the end
         print("Game over!")
-        if game_result == sc2.Result.Defeat:
-            reward = -250  # + self.itercount/500.0 + self.units.amount
-        elif game_result == sc2.Result.Tie:
-            reward = 50
-        elif game_result == sc2.Result.Victory:
-            reward = 250  # - min(self.itercount/500.0, 900) + self.units.amount
-        else:
-            # ???
-            return -13
-        bot_fn = '../txts/' + self.agent.bot_name + '_victories.txt'
-        with open(bot_fn, "a") as myfile:
-            myfile.write(str(reward) + '\n')
-        self.agent.save_reward(reward)
-        R = 0
-        rewards = []
-        all_rewards = self.agent.replay_buffer.rewards_list
-        reward_sum = sum(all_rewards)
-        all_values = self.agent.replay_buffer.value_list
-        deeper_all_values = self.agent.replay_buffer.deeper_value_list
-        # Discount future rewards back to the present using gamma
-        advantages = []
-        deeper_advantages = []
-
-        for r, v, d_v in zip(all_rewards[::-1], all_values[::-1], deeper_all_values[::-1]):
-            R = r + 0.99 * R
-            rewards.insert(0, R)
-            advantages.insert(0, R - v)
-            if d_v is not None:
-                deeper_advantages.insert(0, R - d_v)
-        advantages = torch.Tensor(advantages)
-        rewards = torch.Tensor(rewards)
-
-        if len(deeper_advantages) > 0:
-            deeper_advantages = torch.Tensor(deeper_advantages)
-            deeper_advantages = (deeper_advantages - deeper_advantages.mean()) / (
-                    deeper_advantages.std() + torch.Tensor([np.finfo(np.float32).eps]))
-            self.agent.replay_buffer.deeper_advantage_list = deeper_advantages.detach().clone().cpu().numpy().tolist()
-        else:
-            self.agent.replay_buffer.deeper_advantage_list = [None] * len(all_rewards)
-        # Scale rewards
-        rewards = (rewards - rewards.mean()) / (rewards.std() + torch.Tensor([np.finfo(np.float32).eps]))
-        advantages = (advantages - advantages.mean()) / (advantages.std() + torch.Tensor([np.finfo(np.float32).eps]))
-        self.agent.replay_buffer.rewards_list = rewards.detach().clone().cpu().numpy().tolist()
-        self.agent.replay_buffer.advantage_list = advantages.detach().clone().cpu().numpy().tolist()
-        return reward_sum
+        return self.units(UnitTypeId.MARINE).amount
 
 
 def run_episode(q, main_agent):
@@ -549,95 +505,38 @@ def run_episode(q, main_agent):
             return [reward_sum, bot.agent.replay_buffer.__getstate__()]
     return [reward_sum, bot.agent.replay_buffer.__getstate__()]
 
-
-
-def bernoulli_main(episodes, agent_in, num_processes):
-    def bernoulli_test(p, n, k, alpha):
-        coef = math.factorial(n) / (math.factorial(k) * math.factorial(n - k))
-        p_to_k = p ** k
-        q_to_n_k = (1 - p) ** (n - k)
-        test_res = coef * p_to_k * q_to_n_k
-        if test_res < alpha:
-            return True
-        else:
-            return False
-
-    win_prob = 0.25
-    min_games = 15
-    alpha = 0.05
-    k, n, successful_runs, master_reward, reward, running_reward = 0, 0, 0, 0, 0, 0
-    find_new_step = True
+def main(episodes, agent, num_processes):
     running_reward_array = []
     # lowered = False
-    agent = agent_in.duplicate()
-    # mp.set_start_method('spawn')
-    for episode in range(6, episodes):
+    for episode in range(1, episodes+1):
+        successful_runs = 0
+        master_reward, reward, running_reward = 0, 0, 0
         try:
-            last_agent = agent.duplicate()
-            if find_new_step:
-                successful_runs = 0
-                master_reward, reward, running_reward = 0, 0, 0
-                tuple_out = run_episode(None,
-                                        agent)
-                if tuple_out[0] != -13:
-                    master_reward += tuple_out[0]
-                    running_reward_array.append(tuple_out[0])
-                    agent.replay_buffer.extend(tuple_out[1])
-                    successful_runs += 1
-            if successful_runs > 0 or not find_new_step:  # if we have a non-empty replay buffer
-                reward = master_reward
-                agent.end_episode(reward, num_processes)  # take a gradient step
-                running_reward = sum(running_reward_array[-100:]) / float(min(100.0, len(running_reward_array)))
-                while True:  # Do the bernoulli testing
-
-                    tuple_out = run_episode(None, agent)
-                    if tuple_out[0] != -13:
-                        if tuple_out[1]['rewards'][-1] > 0:
-                            k += 1
-                        n += 1
-                        if n < num_processes:
-                            master_reward += tuple_out[0]
-                            agent.replay_buffer.extend(tuple_out[1])
-                    if n >= min_games:
-                        new_win_prob = float(k)/float(n)
-                        if bernoulli_test(p=win_prob, n=n, k=k, alpha=alpha):
-                            if new_win_prob > win_prob:
-                                win_prob = new_win_prob
-                                k = 0
-                                n = 0
-                                find_new_step = False
-                                agent.save(f'../models/{episode}')
-                                break
-                            else:
-                                agent = last_agent
-                                k = 0
-                                n = 0
-                                find_new_step = True
-                                break
-                    print(f"After this episode, n={n}")
-                    if n > 100 and k > n*.95:
-                        print("Finishing this model")
-                        agent.save('FINAL')
-                        return
-
-            if episode % 50 == 0:
-                print(f'Episode {episode}  Last Reward: {reward}  Average Reward: {running_reward}')
-                # print(f"Running {num_processes} concurrent simulations per episode")
-        except RuntimeError as e:
+            returned_object = run_episode(None, main_agent=agent)
+            master_reward += returned_object[0]
+            running_reward_array.append(returned_object[0])
+            # agent.replay_buffer.extend(returned_object[1])
+            successful_runs += 1
+        except MemoryError as e:
             print(e)
-            find_new_step = True
-            time.sleep(5)
             continue
+        reward = master_reward / float(successful_runs)
+        agent.end_episode(reward, num_processes)
+        running_reward = sum(running_reward_array[-100:]) / float(min(100.0, len(running_reward_array)))
+        if episode % 50 == 0:
+            print(f'Episode {episode}  Last Reward: {reward}  Average Reward: {running_reward}')
+            print(f"Running {num_processes} concurrent simulations per episode")
+        if episode % 300 == 0:
+            agent.save('../models/' + str(episode) + 'th')
+            agent.lower_lr()
     return running_reward_array
 
 
 if __name__ == '__main__':
-    # TODO: change the agent types to include our own policy network
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", "--agent_type", help="architecture of agent to run", type=str, default='djinn')
+    parser.add_argument("-a", "--agent_type", help="architecture of agent to run", type=str, default='prolo')
     parser.add_argument("-e", "--episodes", help="how many episodes", type=int, default=1000)
     parser.add_argument("-p", "--processes", help="how many processes?", type=int, default=1)
-    parser.add_argument("-env", "--env_type", help="environment to run on", type=str, default='cart')
     parser.add_argument("-gpu", help="run on GPU?", action='store_true')
     parser.add_argument("-vec", help="Vectorized ProLoNet?", action='store_true')
     parser.add_argument("-adv", help="Adversarial ProLoNet?", action='store_true')
@@ -651,16 +550,15 @@ if __name__ == '__main__':
     SL_INIT = args.sl_init  # SL->RL fc, applies only for AGENT_TYPE=='fc'
     NUM_EPS = args.episodes  # num episodes Default 1000
     NUM_PROCS = args.processes  # num concurrent processes Default 1
-    ENV_TYPE = args.env_type  # 'cart' or 'lunar' Default 'cart'
     USE_GPU = args.gpu  # Applies for 'prolo' only. use gpu? Default false
     VECTORIZED = args.vec  # Applies for 'prolo' vectorized or no? Default false
     RANDOM = args.rand  # Applies for 'prolo' random init or no? Default false
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
-    # torch.set_num_threads(NUM_PROCS)
-    #dim_in = 14
+    torch.set_num_threads(NUM_PROCS)
     dim_in = 30
     dim_out = 10
-    bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
+    bot_name = AGENT_TYPE + '_marines'
+    # mp.set_start_method('spawn')
     mp.set_sharing_strategy('file_system')
     if AGENT_TYPE == 'prolo':
         policy_agent = DeepProLoNet(distribution='one_hot',
@@ -671,13 +569,19 @@ if __name__ == '__main__':
                                     vectorized=VECTORIZED,
                                     randomized=RANDOM,
                                     adversarial=ADVERSARIAL,
+<<<<<<< Updated upstream
                                     deepen=DEEPEN,
                                     deterministic=True)
+=======
+                                    deepen=DEEPEN)
+
+>>>>>>> Stashed changes
     elif AGENT_TYPE == 'fc':
         policy_agent = FCNet(input_dim=dim_in,
                              bot_name=bot_name,
                              output_dim=dim_out,
-                             sl_init=SL_INIT)
+                             sl_init=SL_INIT,
+                             num_hidden=1)
     elif AGENT_TYPE == 'lstm':
         policy_agent = LSTMNet(input_dim=dim_in,
                                bot_name=bot_name,
@@ -688,10 +592,4 @@ if __name__ == '__main__':
                                   output_dim=dim_out)
     else:
         raise Exception('No valid network selected')
-    start_time = time.time()
-
-    # main(episodes=NUM_EPS, agent_in=policy_agent, num_processes=NUM_PROCS, reset_on_fail=True)
-    policy_agent.load('../models/5')
-    bernoulli_main(episodes=NUM_EPS, agent_in=policy_agent, num_processes=NUM_PROCS)
-    with open(bot_name+'time.txt', 'a') as writer:
-        writer.write(str(time.time()-start_time))
+    main(episodes=NUM_EPS, agent=policy_agent, num_processes=NUM_PROCS)

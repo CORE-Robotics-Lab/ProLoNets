@@ -624,26 +624,26 @@ def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=Fa
     w0 = np.zeros(dim_in)
     w0[TYPES.FOOD_CAP.value] = -1  # negative food capacity
     w0[TYPES.FOOD_USED.value] = 1  # plus food used = negative food available
-    c0 = [-4]  # > -4  (so if positive < 4)
+    c0 = [-8]  # > -4  (so if positive < 4)
 
     #scv_count < 18 go left
     #-scv_count > -18 go left
     #-scv_count-18 > 0 go left
     w1 = np.zeros(dim_in)
     w1[TYPES.SCV.value] = -1
-    c1 = [-18]
+    c1 = [-16]
 
     #barracks < 1 go left
     #-barracks > -1 go left
     w2 = np.zeros(dim_in)
     w2[TYPES.BARRACKS.value] = -1
-    c2 = [-1]
+    c2 = [-0.5]
 
     #barracks - pending_marines > 0 go left
     w3 = np.zeros(dim_in)
     w3[TYPES.BARRACKS.value] = 1
     w3[TYPES.PENDING_MARINE.value] = -1
-    c3 = [0]
+    c3 = [-0.5]
 
     init_weights = [
         w0,

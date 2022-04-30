@@ -74,8 +74,9 @@ class DeepProLoNet:
                                                                                distribution_in=distribution,
                                                                                adv_prob=self.adv_prob)
                 self.bot_name += '_adversarial' + str(self.adv_prob)
-        elif input_dim == len(TYPES) and output_dim == 10:   # SC BuildMarines
+        elif input_dim == 30 and output_dim == 10:   # SC BuildMarines
             self.action_network, self.value_network = init_sc_build_marines_net(distribution, use_gpu, vectorized, randomized)
+            print("Hello!")
         elif input_dim == 6 and output_dim == 5:  # Fire Sim
             self.action_network, self.value_network = init_fire_nets(distribution,
                                                                      use_gpu,
@@ -123,7 +124,7 @@ class DeepProLoNet:
             value_pred = self.value_network(obs)
             probs = probs.view(-1).cpu()
             self.full_probs = probs
-            if self.action_network.input_dim > 30:
+            if self.action_network.input_dim >= 30:
                 probs, inds = torch.topk(probs, 3)
             m = Categorical(probs)
             action = m.sample()
@@ -149,7 +150,7 @@ class DeepProLoNet:
                 self.last_action = inds[action].cpu()
             else:
                 self.last_action = action.cpu()
-        if self.action_network.input_dim > 30:
+        if self.action_network.input_dim >= 30:
             action = inds[action].item()
         else:
             action = action.item()
