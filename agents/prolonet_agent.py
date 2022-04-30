@@ -124,6 +124,7 @@ class DeepProLoNet:
             value_pred = self.value_network(obs)
             probs = probs.view(-1).cpu()
             self.full_probs = probs
+            print('action probs:', probs)
             if self.action_network.input_dim >= 30:
                 probs, inds = torch.topk(probs, 3)
             m = Categorical(probs)
