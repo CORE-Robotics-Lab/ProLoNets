@@ -583,7 +583,7 @@ if __name__ == '__main__':
     torch.set_num_threads(NUM_PROCS)
     dim_in = 32
     dim_out = 12
-    bot_name = AGENT_TYPE + '_marines'
+    bot_name = AGENT_TYPE + '_hellions'
     # mp.set_start_method('spawn')
     mp.set_sharing_strategy('file_system')
     if AGENT_TYPE == 'prolo':
