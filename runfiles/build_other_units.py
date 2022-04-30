@@ -145,8 +145,10 @@ class StarmniBot(sc2.BotAI):
         # print('PREVIOUS STATE:\n\n', self.prev_state)
 
         action = self.agent.get_action(self.prev_state)
+        num_hellions_before = self.units(UnitTypeId.HELLION).amount
         # TODO: abstract the act of getting an action into our own agent
         self.last_reward = await self.activate_sub_bot(action)  # delegates the specific action to the baby bots below
+        self.last_reward = self.units(UnitTypeId.HELLION).amount - num_hellions_before
         self.last_reward -= STEP_PENALTY
         # print(self.last_reward)
         self.agent.save_reward(self.last_reward)
@@ -211,7 +213,7 @@ class StarmniBot(sc2.BotAI):
 
         unit_choice = hard_coded_choice
         if SUPER_DEBUG:
-            print(build_marines_helpers.my_units_to_str(unit_choice), 'idx:', unit_choice)
+            print(build_other_units_helpers.my_units_to_str(unit_choice), 'idx:', unit_choice)
 
         # Need to know unit type to know if placement is valid.
         success = FAILED_REWARD
@@ -500,8 +502,48 @@ class StarmniBot(sc2.BotAI):
         # await self.chat_send("reset")
         # The reward for a rollout should be proportional to the number of marines present at the end
         print("Game over!")
+        rewards_list, advantage_list, deeper_advantage_list = discount_reward(
+            self.agent.replay_buffer.rewards_list,
+            self.agent.replay_buffer.value_list,
+            self.agent.replay_buffer.deeper_value_list)
+        self.agent.replay_buffer.rewards_list = rewards_list
+        self.agent.replay_buffer.advantage_list = advantage_list
+        self.agent.replay_buffer.deeper_advantage_list = deeper_advantage_list
         return self.units(UnitTypeId.HELLION).amount
 
+def discount_reward(reward, value, deeper_value):
+    R = 0
+    rewards = []
+    all_rewards = reward
+    reward_sum = sum(all_rewards)
+    all_values = value
+    deeper_all_values = deeper_value
+    # Discount future rewards back to the present using gamma
+    advantages = []
+    deeper_advantages = []
+
+    for r, v, d_v in zip(all_rewards[::-1], all_values[::-1], deeper_all_values[::-1]):
+        R = r + 0.99 * R
+        rewards.insert(0, R)
+        advantages.insert(0, R - v)
+        if d_v is not None:
+            deeper_advantages.insert(0, R - d_v)
+    advantages = torch.Tensor(advantages)
+    rewards = torch.Tensor(rewards)
+
+    if len(deeper_advantages) > 0:
+        deeper_advantages = torch.Tensor(deeper_advantages)
+        deeper_advantages = (deeper_advantages - deeper_advantages.mean()) / (
+                deeper_advantages.std() + torch.Tensor([np.finfo(np.float32).eps]))
+        deeper_advantage_list = deeper_advantages.detach().clone().cpu().numpy().tolist()
+    else:
+        deeper_advantage_list = [None] * len(all_rewards)
+    # Scale rewards
+    rewards = (rewards - rewards.mean()) / (rewards.std() + torch.Tensor([np.finfo(np.float32).eps]))
+    advantages = (advantages - advantages.mean()) / (advantages.std() + torch.Tensor([np.finfo(np.float32).eps]))
+    rewards_list = rewards.detach().clone().cpu().numpy().tolist()
+    advantage_list = advantages.detach().clone().cpu().numpy().tolist()
+    return rewards_list, advantage_list, deeper_advantage_list
 
 def run_episode(q, main_agent):
     result = None
