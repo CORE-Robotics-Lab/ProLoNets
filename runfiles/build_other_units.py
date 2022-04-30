@@ -354,7 +354,8 @@ class StarmniBot(sc2.BotAI):
     async def train_unit(self, action_unit_index):
         action_to_unit = {
             8: UnitTypeId.SCV,
-            9: UnitTypeId.MARINE
+            9: UnitTypeId.MARINE,
+            10: UnitTypeId.HELLION
             # 34: UnitTypeId.INTERCEPTOR,  # TRAIN BY DEFAULT, DONT NEED TO TRAIN
             # 35: UnitTypeId.ARCHON,  # CURRENT IMPOSSIBLE WITH THE API
         }
@@ -362,6 +363,7 @@ class StarmniBot(sc2.BotAI):
         if DEBUG:
             print("Training a", unit_to_build.name)
         barracks_units = [UnitTypeId.MARINE]
+        factory_units = [UnitTypeId.HELLION]
         if unit_to_build == UnitTypeId.SCV:
             cc = self.units(UnitTypeId.COMMANDCENTER).ready.random
             if cc.noqueue and self.can_afford(unit_to_build):
@@ -394,9 +396,34 @@ class StarmniBot(sc2.BotAI):
                     else:
                         # Can't afford or can't make unit type
                         return FAILED_REWARD
+        elif unit_to_build in factory_units:
+            # Look for a reactored factory first
+                if self.units(UnitTypeId.FACTORYREACTOR).ready.exists:
+                    # one to one the list of abilities needed to train each unit in the barracks menu
+                    abilities_necessary = [AbilityId.FACTORYTRAIN_HELLION]
+                    ability_req = abilities_necessary[factory_units.index(unit_to_build)]
+                    building = self.units(UnitTypeId.FACTORYREACTOR).ready.random
+                    abilities = await self.get_available_abilities(building)
+                    # all the units have the same cooldown anyway so let's just look at ZEALOT
+                    if ability_req in abilities and self.can_afford(unit_to_build):
+                        self.action_buffer.append(building.train(unit_to_build))
+                        return SUCCESS_TRAIN_REWARD
+                    else:
+                        return FAILED_REWARD
+                elif self.units(UnitTypeId.FACTORY).ready.exists:
+                    building = self.units(UnitTypeId.FACTORY).ready.random
+                    abilities_necessary = [AbilityId.FACTORYTRAIN_HELLION]
+                    ability_req = abilities_necessary[factory_units.index(unit_to_build)]
+                    abilities = await self.get_available_abilities(building)
+                    if ability_req in abilities and self.can_afford(unit_to_build):
+                        self.action_buffer.append(building.train(unit_to_build))
+                        return SUCCESS_TRAIN_REWARD
+                    else:
+                        # Can't afford or can't make unit type
+                        return FAILED_REWARD
 
         return FAILED_REWARD
-
+    '''
     async def research_upgrade(self, research_index):
         # could be interesting to leave for future stuff but not particularly useful for Make Marines
         index_to_upgrade = {
@@ -449,7 +476,7 @@ class StarmniBot(sc2.BotAI):
                         self.action_buffer.append(core(topic))
                         return SUCCESS_BUILD_REWARD
             return FAILED_REWARD
-
+    '''
     async def back_to_mining(self):
         reassigned_miners = 0
         for a in self.units(UnitTypeId.REFINERY):
@@ -473,7 +500,7 @@ class StarmniBot(sc2.BotAI):
         # await self.chat_send("reset")
         # The reward for a rollout should be proportional to the number of marines present at the end
         print("Game over!")
-        return self.units(UnitTypeId.MARINE).amount
+        return self.units(UnitTypeId.HELLION).amount
 
 
 def run_episode(q, main_agent):
