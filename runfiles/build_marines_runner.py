@@ -260,9 +260,10 @@ class StarmniBot(sc2.BotAI):
                     elif await self.can_place(index_to_unit[unit_choice], target_pt):
                         break  # TODO: Eventually I'd like to pop(pos_ind) off of the list...
                     else: # failed to place building?
-                        print("I can't build there!")
+
                         positions_for_depots_idx += 1
                         if positions_for_depots_idx >= len(self.positions_for_depots):
+                            print("I can't build that!")
                             break
                         target_pt = self.positions_for_depots[positions_for_depots_idx]
                         # self.positions_for_depots.pop(positions_for_depots_idx)
@@ -527,7 +528,7 @@ def run_episode(q, main_agent):
     bot = StarmniBot(rl_agent=agent_in)
 
     try: # TODO: replace this with the correct minigame map and set up the game
-        result = sc2.run_game(sc2.maps.get("BuildMarines"),
+        result = sc2.run_game(sc2.maps.get("BuildBCs"),
                               [Bot(Race.Terran, bot)],
                               realtime=False,
                               save_replay_as=os.path.join('replays', datetime.now().strftime("%Y-%m-%d_%H-%M-%S.SC2REPLAY")))
