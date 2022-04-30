@@ -569,13 +569,7 @@ if __name__ == '__main__':
                                     vectorized=VECTORIZED,
                                     randomized=RANDOM,
                                     adversarial=ADVERSARIAL,
-<<<<<<< Updated upstream
-                                    deepen=DEEPEN,
-                                    deterministic=True)
-=======
                                     deepen=DEEPEN)
-
->>>>>>> Stashed changes
     elif AGENT_TYPE == 'fc':
         policy_agent = FCNet(input_dim=dim_in,
                              bot_name=bot_name,
