@@ -565,6 +565,7 @@ def run_episode(q, main_agent):
         result = result[0]
 
     reward_sum = bot.finish_episode(result)
+    agent_in.replay_buffer.extend(bot.agent.replay_buffer.__getstate__())
     if q is not None:
         try:
             q.put([reward_sum, bot.agent.replay_buffer.__getstate__()])
