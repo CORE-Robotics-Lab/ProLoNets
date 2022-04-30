@@ -584,7 +584,7 @@ def main(episodes, agent, num_processes):
             returned_object = run_episode(None, main_agent=agent)
             master_reward += returned_object[0]
             running_reward_array.append(returned_object[0])
-            # agent.replay_buffer.extend(returned_object[1])
+            agent.replay_buffer.extend(returned_object[1])
             successful_runs += 1
         except MemoryError as e:
             print(e)

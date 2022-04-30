@@ -105,6 +105,7 @@ class PPO:
                     deep_total_action_loss = deep_total_action_loss.cuda()
             samples = [rollouts.sample() for _ in range(batch_size)]
             samples = [sample for sample in samples if sample != False]
+            print("SAMPLES:", samples)
             if len(samples) <= 1:
                 continue
             state = torch.cat([sample['state'][0] for sample in samples], dim=0)
