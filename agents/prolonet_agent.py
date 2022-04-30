@@ -126,7 +126,7 @@ class DeepProLoNet:
             probs = probs.view(-1).cpu()
             self.full_probs = probs
             # print('action probs:', probs)
-            if self.action_network.input_dim >= 30:
+            if self.action_network.input_dim >= 50:
                 probs, inds = torch.topk(probs, 5)
             m = Categorical(probs)
             action = m.sample()
@@ -142,17 +142,17 @@ class DeepProLoNet:
                 deeper_value_pred = self.deeper_value_network(obs)
                 deeper_probs = deeper_probs.view(-1).cpu()
                 self.deeper_full_probs = deeper_probs
-                if self.action_network.input_dim >= 30:
+                if self.action_network.input_dim >= 50:
                     deeper_probs, _ = torch.topk(probs,5)
                 deep_m = Categorical(deeper_probs)
                 deep_log_probs = deep_m.log_prob(action)
                 self.last_deep_action_probs = deep_log_probs.cpu()
                 self.last_deep_value_pred = deeper_value_pred.view(-1).cpu()
-            if self.action_network.input_dim >= 30:
+            if self.action_network.input_dim >= 50:
                 self.last_action = inds[action].cpu()
             else:
                 self.last_action = action.cpu()
-        if self.action_network.input_dim >= 30:
+        if self.action_network.input_dim >= 50:
             action = inds[action].item()
         else:
             action = action.item()
@@ -171,7 +171,7 @@ class DeepProLoNet:
         return True
 
     def end_episode(self, timesteps, num_processes):
-        print("REPLAY BUFFER: ", self.replay_buffer)
+        # print("REPLAY BUFFER: ", self.replay_buffer)
         value_loss, action_loss = self.ppo.batch_updates(self.replay_buffer, self, go_deeper=self.deepen)
         self.num_steps += 1
         # Copy over new decision node params from shallower network to deeper network

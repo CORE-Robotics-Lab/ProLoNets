@@ -30,11 +30,11 @@ if SUPER_DEBUG:
 
 FAILED_REWARD = -0.0
 STEP_PENALTY = 0.01
-SUCCESS_BUILD_REWARD = 0.
-SUCCESS_TRAIN_REWARD = 0.
+SUCCESS_BUILD_REWARD = 0.2
+SUCCESS_TRAIN_REWARD = 0.3
 SUCCESS_SCOUT_REWARD = 0.
 SUCCESS_ATTACK_REWARD = 0.
-SUCCESS_MINING_REWARD = 0.
+SUCCESS_MINING_REWARD = 0.01
 
 
 class StarmniBot(sc2.BotAI):
@@ -84,7 +84,7 @@ class StarmniBot(sc2.BotAI):
             #p0 = our_center + (vector * Point2((-3, -3))).rounded  # will have to tune these locations
             # TODO: fix the locations to the true locations. this will require much trial and error
             for i in np.arange(21, 50, 4):
-                for j in np.arange(17, 39, 3):
+                for j in np.arange(17, 37, 3):
                     pos = Point2((float(i), float(j)))
                     self.positions_for_depots.append(pos)
                     self.positions_for_buildings.append(pos)
@@ -145,10 +145,8 @@ class StarmniBot(sc2.BotAI):
         # print('PREVIOUS STATE:\n\n', self.prev_state)
 
         action = self.agent.get_action(self.prev_state)
-        num_hellions_before = self.units(UnitTypeId.HELLION).amount
         # TODO: abstract the act of getting an action into our own agent
         self.last_reward = await self.activate_sub_bot(action)  # delegates the specific action to the baby bots below
-        self.last_reward = self.units(UnitTypeId.HELLION).amount - num_hellions_before
         self.last_reward -= STEP_PENALTY
         # print(self.last_reward)
         self.agent.save_reward(self.last_reward)
@@ -163,7 +161,6 @@ class StarmniBot(sc2.BotAI):
         self.action_buffer = []
 
     async def activate_sub_bot(self, general_bot_out):
-
 
         if general_bot_out == 43:
             if SUPER_DEBUG:
@@ -237,11 +234,11 @@ class StarmniBot(sc2.BotAI):
                 # Gas collectors will automatically move onto vespene geysers
                 target_pt = None
             elif unit_choice == 1:
-                positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
+                positions_for_depots_idx = 0
                 target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
             else:
-                positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
+                positions_for_depots_idx = 0
                 target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
             # print("depot locations remaining:", len(self.positions_for_depots))
@@ -341,14 +338,27 @@ class StarmniBot(sc2.BotAI):
                 worker = self.select_build_worker(pos, force=True)
                 # print("worker:", worker)
                 if worker is not None:
-                    self.action_buffer.append(worker.build(building_target, pos))
+                    if building_target == UnitTypeId.SUPPLYDEPOT:
+                        self.action_buffer.append(worker.build(building_target, pos))
+                        return SUCCESS_BUILD_REWARD
+                    elif building_target == UnitTypeId.BARRACKS:
+                        if self.units(UnitTypeId.SUPPLYDEPOT).amount < 1: # no supply depots, can't make a barracks dummy
+                            return FAILED_REWARD
+                        else:
+                            self.action_buffer.append(worker.build(building_target, pos))
+                            return SUCCESS_BUILD_REWARD * 4  # let's encourage higher tech
+                    elif building_target == UnitTypeId.FACTORY:
+                        if self.units(
+                            UnitTypeId.BARRACKS).amount < 1:  # no barracks, can't make a factory, dummy
+                            return FAILED_REWARD
+                        else:
+                            self.action_buffer.append(worker.build(building_target, pos))
+                            return SUCCESS_BUILD_REWARD * 16  # to encourage higher tech
+
                     # print('action buffer len:', len(self.action_buffer))
                     # await self.build(building_target, near=pos)
-                    if building_target == UnitTypeId.SUPPLYDEPOT:
-                        # print('you did it! maybe...')
-                        return SUCCESS_BUILD_REWARD*0.1
-
-                    return SUCCESS_BUILD_REWARD
+                    # else you picked a building we haven't implemented yet. Sorry, wait for the update?
+                    return FAILED_REWARD
                 else:
                     return FAILED_REWARD
         return FAILED_REWARD
@@ -409,6 +419,8 @@ class StarmniBot(sc2.BotAI):
                     # all the units have the same cooldown anyway so let's just look at ZEALOT
                     if ability_req in abilities and self.can_afford(unit_to_build):
                         self.action_buffer.append(building.train(unit_to_build))
+                        if unit_to_build == UnitTypeId.HELLION:
+                            return 10
                         return SUCCESS_TRAIN_REWARD
                     else:
                         return FAILED_REWARD
@@ -419,6 +431,8 @@ class StarmniBot(sc2.BotAI):
                     abilities = await self.get_available_abilities(building)
                     if ability_req in abilities and self.can_afford(unit_to_build):
                         self.action_buffer.append(building.train(unit_to_build))
+                        if unit_to_build == UnitTypeId.HELLION:
+                            return 10
                         return SUCCESS_TRAIN_REWARD
                     else:
                         # Can't afford or can't make unit type
