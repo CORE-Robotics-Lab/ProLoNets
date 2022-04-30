@@ -670,23 +670,33 @@ def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=Fa
     leaf_base = [leaf_base_init_val] * dim_out
 
     # Supply
+    # left from [0]     (Food)
+    # right from []
     l0 = [[0], [], leaf_base.copy()]
     l0[-1][1] = leaf_target_init_val
 
     # SCV
+    # left from [1]     (SCV)
+    # right from []
     l1 = [[1], [0], leaf_base.copy()]
     l1[-1][8] = leaf_target_init_val
 
     # Barracks initial
+    # left from [2]     (Barracks initial?)
+    # right from [0, 1] (Food, SCV)
     l2 = [[2], [0, 1], leaf_base.copy()]
     l2[-1][3] = leaf_target_init_val
 
     # Barracks busy
     # Marines
+    # left from [3]     (Barracks busy?)
+    # right from [0, 1, 2]  (Food, SCV, Barracks initial?)
     l3 = [[3], [0, 1, 2], leaf_base.copy()]
     l3[-1][9] = leaf_target_init_val
 
     # Barracks
+    # left from []
+    # right from [0, 1, 2, 3]   (everything)
     l4 = [[], [0, 1, 2, 3], leaf_base.copy()]
     l4[-1][3] = leaf_target_init_val
 

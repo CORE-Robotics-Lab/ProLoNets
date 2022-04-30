@@ -922,7 +922,7 @@ def bernoulli_main(episodes, agent_in, num_processes):
             return False
 
     win_prob = 0.25
-    min_games = 15
+    min_games = 1
     alpha = 0.05
     k, n, successful_runs, master_reward, reward, running_reward = 0, 0, 0, 0, 0, 0
     find_new_step = True

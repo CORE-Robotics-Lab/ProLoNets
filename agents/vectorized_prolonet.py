@@ -63,7 +63,7 @@ class ProLoNet(nn.Module):
         self.is_value = is_value
         #self.visualize_prolonet()
 
-    def visualize_prolonet(self):
+    def visualize_prolonet(self, idx_to_names, idx_to_actions):
 
         #all_nodes = []
         #for leaf in self.leaf_init_information:
@@ -100,24 +100,103 @@ class ProLoNet(nn.Module):
 
         g = nx.DiGraph()
 
+        node_relabel = {}
+
+        node_width = 10
+        node_height = 3
+
         for leaf in self.leaf_init_information:
             deepest_node = max(leaf[0] + leaf[1])
-            g.add_node(deepest_node, color="blue")
+
+            weights = self.layers[deepest_node]
+            comparator = self.comparators[deepest_node]
+
+            readable_weights = []
+
+            for idx in torch.nonzero(weights):
+                # print(idx, idx_to_names[int(idx)])
+                readable_weights.append('(' + str(float(weights[idx])) + ')' + str(idx_to_names[int(idx)]))
+
+            print(readable_weights)
+
+            comparator_string = ''
+            for i in range(len(readable_weights)):
+                comparator_string += readable_weights[i]
+                if i < len(readable_weights) - 1:
+                    comparator_string += ' +\n'
+
+            comparator_string += '\n > '
+            comparator_string += str(float(comparator))
+
+            summary_string = 'Node '
+            summary_string += str(deepest_node) + '\n'
+            summary_string += comparator_string
+
+            node_relabel[deepest_node] = summary_string
+
+
+            print(summary_string)
+
+            g.add_node(deepest_node, color="white")
+            # print(self.comparators[deepest_node])
+            # print(deepest_node, self.comparators[deepest_node].item())
             # add leaf node
-            ind = deepest_node * 2 + 1 if deepest_node in leaf[0] else deepest_node * 2 + 2
-            g.add_node(ind, color="green")
-            g.add_edge(deepest_node, ind)
+            # ind = deepest_node * 2 + 1 if deepest_node in leaf[0] else deepest_node * 2 + 2
+            # g.add_node(ind, color="green")
+            # g.add_edge(deepest_node, ind)
             # recurse from last internal node to root
             while deepest_node != 0:
                 parent = (deepest_node - 1)//2
-                g.add_node(parent, color="blue")
-                g.add_edge(parent, deepest_node)
+                g.add_node(parent, color="white")
+                # g.add_edge(parent, deepest_node, edge_color="black")
                 deepest_node = parent
+
+        leaf_idx = 0
+        for leaf_left, leaf_right, leaf_actions in self.leaf_init_information:
+            print(leaf_left, leaf_right, leaf_actions)
+
+            readable_actions = []
+            for i in range(len(leaf_actions)):
+                if leaf_actions[i] != 0:
+                    print(leaf_actions[i])
+                    readable_actions.append('(' + str(leaf_actions[i]) + ')' + str(idx_to_actions[i]))
+            print(readable_actions)
+
+            actions_string = 'Action ' + str(leaf_idx) + '\n'
+            for action in readable_actions:
+                actions_string += str(action) + ' '
+
+            print(actions_string)
+
+            g.add_node(actions_string, color="green")
+
+            for left_parent in leaf_left:
+                g.add_edge(left_parent, actions_string, edge_color="green")
+
+            for right_parent in leaf_right:
+                # break
+                g.add_edge(right_parent, actions_string, edge_color="red")
+
+            leaf_idx += 1
+
+        print(node_relabel)
+
+        g = nx.relabel_nodes(g, node_relabel)
+
+        print("NODES:")
+        print(g.nodes())
+        print("EDGES:")
+        print(g.edges())
+
+        edge_colors = [g.edges[edge]["edge_color"] for edge in g.edges()]
+
+        for e in edge_colors:
+            print(e)
 
         pos = graphviz_layout(g, prog="dot")
         #pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot', args='-Grankdir=LR')
         color_list = [g.nodes[node]["color"] for node in g.nodes()]
-        nx.draw(g, pos, node_color=color_list, with_labels=True)
+        nx.draw(g, pos, node_color=color_list, edge_color=edge_colors, with_labels=True, node_size=5000)
         plt.show()
 
         # sorting of nodes does not affect order in visualized graph

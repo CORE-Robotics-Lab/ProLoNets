@@ -82,6 +82,8 @@ if __name__ == '__main__':
     bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
     mp.set_sharing_strategy('file_system')
     if AGENT_TYPE == 'prolo':
+        idx_to_name, name_to_idx = build_marines_helpers.get_human_readable_mapping()
+        idx_to_action = build_marines_helpers.get_human_readable_action_mapping()
         policy_agent = DeepProLoNet(distribution='one_hot',
                                     bot_name=bot_name,
                                     input_dim=dim_in,
@@ -92,6 +94,7 @@ if __name__ == '__main__':
                                     adversarial=ADVERSARIAL,
                                     deepen=DEEPEN,
                                     deterministic=True)
+        policy_agent.action_network.visualize_prolonet(idx_to_names=idx_to_name, idx_to_actions=idx_to_action)
     elif AGENT_TYPE == 'fc':
         policy_agent = FCNet(input_dim=dim_in,
                              bot_name=bot_name,

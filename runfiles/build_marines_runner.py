@@ -24,7 +24,7 @@ import traceback
 import random
 
 DEBUG = False
-SUPER_DEBUG = True
+SUPER_DEBUG = False
 if SUPER_DEBUG:
     DEBUG = True
 
@@ -92,8 +92,7 @@ class StarmniBot(sc2.BotAI):
             self.positions_for_depots.sort(key=lambda a: our_center.distance_to(a))
             self.positions_for_buildings.sort(key=lambda a: self.start_location.distance_to(a))
 
-            print(self.positions_for_depots)
-            # quit()
+            # print(self.positions_for_depots)
 
             await self.chat_send("ProLo")
             self.corners = [Point2(Pointlike([min_x, max_y])),
@@ -243,7 +242,7 @@ class StarmniBot(sc2.BotAI):
                 positions_for_depots_idx = random.choice(range(len(self.positions_for_depots)))
                 target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
-            print("depot locations remaining:", len(self.positions_for_depots))
+            # print("depot locations remaining:", len(self.positions_for_depots))
             # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
@@ -338,13 +337,13 @@ class StarmniBot(sc2.BotAI):
                 else:
                     pos = placement_location
                 worker = self.select_build_worker(pos, force=True)
-                print("worker:", worker)
+                # print("worker:", worker)
                 if worker is not None:
                     self.action_buffer.append(worker.build(building_target, pos))
                     # print('action buffer len:', len(self.action_buffer))
                     # await self.build(building_target, near=pos)
                     if building_target == UnitTypeId.SUPPLYDEPOT:
-                        print('you did it! maybe...')
+                        # print('you did it! maybe...')
                         return SUCCESS_BUILD_REWARD*0.1
 
                     return SUCCESS_BUILD_REWARD
@@ -523,10 +522,10 @@ def main(episodes, agent, num_processes):
         reward = master_reward / float(successful_runs)
         agent.end_episode(reward, num_processes)
         running_reward = sum(running_reward_array[-100:]) / float(min(100.0, len(running_reward_array)))
-        if episode % 50 == 0:
+        if episode % 50 == 0 or True:
             print(f'Episode {episode}  Last Reward: {reward}  Average Reward: {running_reward}')
             print(f"Running {num_processes} concurrent simulations per episode")
-        if episode % 300 == 0:
+        if episode % 300 == 0 or True:
             agent.save('../models/' + str(episode) + 'th')
             agent.lower_lr()
     return running_reward_array

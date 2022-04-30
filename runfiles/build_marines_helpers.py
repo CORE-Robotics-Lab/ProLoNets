@@ -120,7 +120,7 @@ def get_human_readable_mapping():
     for e in current_state_names + my_unit_type_names:
         e = str(e)
         e = e.replace('UnitTypeId.', '')
-        print(e)
+        # print(e)
         idx_to_name[idx] = e
         name_to_idx[e] = idx
         idx += 1
@@ -139,6 +139,16 @@ def get_human_readable_mapping():
     idx += 1
 
     return idx_to_name, name_to_idx
+
+def get_human_readable_action_mapping():
+    idx_to_action = {}
+    idx = 0
+    for e in MY_POSSIBLES:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        idx_to_action[idx] = e
+        idx += 1
+    return idx_to_action
 
 def get_unit_data(unit_in):
     if unit_in is None:
