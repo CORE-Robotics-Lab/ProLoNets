@@ -592,10 +592,10 @@ def main(episodes, agent, num_processes):
         reward = master_reward / float(successful_runs)
         agent.end_episode(reward, num_processes)
         running_reward = sum(running_reward_array[-100:]) / float(min(100.0, len(running_reward_array)))
-        if episode % 50 == 0 or True:
+        if episode % 10 == 0:
             print(f'Episode {episode}  Last Reward: {reward}  Average Reward: {running_reward}')
             print(f"Running {num_processes} concurrent simulations per episode")
-        if episode % 300 == 0 or True:
+        if episode % 100 == 0:
             agent.save('../models/' + str(episode) + 'th')
             agent.lower_lr()
     return running_reward_array
