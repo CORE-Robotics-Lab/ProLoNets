@@ -5,6 +5,7 @@ import numpy as np
 import typing as t
 import random
 import math
+import re
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -63,7 +64,7 @@ class ProLoNet(nn.Module):
         self.is_value = is_value
         #self.visualize_prolonet()
 
-    def visualize_prolonet(self, idx_to_names, idx_to_actions):
+    def visualize_prolonet(self, idx_to_names, idx_to_actions, raw_indices=False):
 
         #all_nodes = []
         #for leaf in self.leaf_init_information:
@@ -102,20 +103,30 @@ class ProLoNet(nn.Module):
 
         node_relabel = {}
 
-        node_width = 10
-        node_height = 3
-
+        attached_node_indices = set()
         for leaf in self.leaf_init_information:
-            deepest_node = max(leaf[0] + leaf[1])
+            for left_parent in leaf[0]:
+                attached_node_indices.add(left_parent)
+            for right_parent in leaf[1]:
+                attached_node_indices.add(right_parent)
+
+        print(attached_node_indices)
+
+        for leaf in attached_node_indices:
+            deepest_node = leaf
 
             weights = self.layers[deepest_node]
+            print(deepest_node, weights)
             comparator = self.comparators[deepest_node]
 
             readable_weights = []
 
             for idx in torch.nonzero(weights):
                 # print(idx, idx_to_names[int(idx)])
-                readable_weights.append('(' + str(float(weights[idx])) + ')' + str(idx_to_names[int(idx)]))
+                new_str = '(' + str(float(weights[idx])) + ')' + str(idx_to_names[int(idx)])
+                if raw_indices:
+                    new_str += '[' + str(int(idx)) + ']'
+                readable_weights.append(new_str)
 
             print(readable_weights)
 
@@ -125,17 +136,20 @@ class ProLoNet(nn.Module):
                 if i < len(readable_weights) - 1:
                     comparator_string += ' +\n'
 
+            line_positions_iter = re.finditer('\n', comparator_string)
+            line_positions = [l.start(0) for l in line_positions_iter]
+
+            if len(line_positions) > 4:
+                comparator_string = comparator_string[:line_positions[4]] + '...'
+
             comparator_string += '\n > '
             comparator_string += str(float(comparator))
 
-            summary_string = 'Node '
-            summary_string += str(deepest_node) + '\n'
+            summary_string = 'Comp ['
+            summary_string += str(deepest_node) + ']\n'
             summary_string += comparator_string
 
             node_relabel[deepest_node] = summary_string
-
-
-            print(summary_string)
 
             g.add_node(deepest_node, color="white")
             # print(self.comparators[deepest_node])
@@ -147,7 +161,7 @@ class ProLoNet(nn.Module):
             # recurse from last internal node to root
             while deepest_node != 0:
                 parent = (deepest_node - 1)//2
-                g.add_node(parent, color="white")
+                # g.add_node(parent, color="white")
                 # g.add_edge(parent, deepest_node, edge_color="black")
                 deepest_node = parent
 
@@ -159,22 +173,24 @@ class ProLoNet(nn.Module):
             for i in range(len(leaf_actions)):
                 if leaf_actions[i] != 0:
                     print(leaf_actions[i])
-                    readable_actions.append('(' + str(leaf_actions[i]) + ')' + str(idx_to_actions[i]))
+                    new_str = '(' + str(leaf_actions[i]) + ')' + str(idx_to_actions[i])
+                    if raw_indices:
+                        new_str += '[' + str(int(i)) + ']'
+                    readable_actions.append(new_str)
             print(readable_actions)
 
-            actions_string = 'Action ' + str(leaf_idx) + '\n'
+            actions_string = 'Action [' + str(leaf_idx) + ']\n'
             for action in readable_actions:
                 actions_string += str(action) + ' '
 
             print(actions_string)
 
-            g.add_node(actions_string, color="green")
+            g.add_node(actions_string, color="white")
 
             for left_parent in leaf_left:
                 g.add_edge(left_parent, actions_string, edge_color="green")
 
             for right_parent in leaf_right:
-                # break
                 g.add_edge(right_parent, actions_string, edge_color="red")
 
             leaf_idx += 1
@@ -193,11 +209,22 @@ class ProLoNet(nn.Module):
         for e in edge_colors:
             print(e)
 
-        pos = graphviz_layout(g, prog="dot")
-        #pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot', args='-Grankdir=LR')
+        # for i in sorted(g.nodes(), key=str):
+        #     b = [str(edge_tuple[0]) for edge_tuple in g.in_edges(i)]
+        #     if not b:
+        #         print('Empty list: {}, {}'.format(i, b))
+        #         g.remove_node(i)
+
+        # quit()
+        # pos = graphviz_layout(g, prog="dot")
+        pos = nx.drawing.nx_agraph.graphviz_layout(g, prog='dot', args='-Grankdir=LR')
         color_list = [g.nodes[node]["color"] for node in g.nodes()]
-        nx.draw(g, pos, node_color=color_list, edge_color=edge_colors, with_labels=True, node_size=5000)
+        nx.draw(g, pos, node_color=color_list, edge_color=edge_colors, with_labels=True, node_size=8000)
+        figure = plt.gcf()
+        figure.set_size_inches(20, 15)
+        plt.savefig('myplot.png', dpi=200)
         plt.show()
+
 
         # sorting of nodes does not affect order in visualized graph
 

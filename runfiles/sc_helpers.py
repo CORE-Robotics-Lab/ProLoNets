@@ -60,6 +60,162 @@ ENEMY_MAPPINGS = {
         LURKERDEN: LURKERDENMP,
     }
 
+index_to_upgrade = {
+            34: "ground_attacks",
+            35: "air_attacks",
+            36: "ground_armor",
+            37: "air_armor",
+            38: "shields",
+            39: "speed",
+            40: "range",
+            41: "spells",
+            42: "misc"
+        }
+
+index_to_unit = {
+            0: UnitTypeId.NEXUS,
+            1: UnitTypeId.PYLON,
+            2: UnitTypeId.ASSIMILATOR,
+            3: UnitTypeId.GATEWAY,
+            4: UnitTypeId.WARPGATE,
+            5: UnitTypeId.FORGE,
+            6: UnitTypeId.CYBERNETICSCORE,
+            7: UnitTypeId.PHOTONCANNON,
+            8: UnitTypeId.SHIELDBATTERY,
+            9: UnitTypeId.ROBOTICSFACILITY,
+            10: UnitTypeId.STARGATE,
+            11: UnitTypeId.TWILIGHTCOUNCIL,
+            12: UnitTypeId.ROBOTICSBAY,
+            13: UnitTypeId.FLEETBEACON,
+            14: UnitTypeId.TEMPLARARCHIVE,
+            15: UnitTypeId.DARKSHRINE
+        }
+action_to_unit = {
+            16: UnitTypeId.PROBE,
+            17: UnitTypeId.ZEALOT,
+            18: UnitTypeId.STALKER,
+            19: UnitTypeId.SENTRY,
+            20: UnitTypeId.ADEPT,
+            21: UnitTypeId.HIGHTEMPLAR,
+            22: UnitTypeId.DARKTEMPLAR,
+            23: UnitTypeId.OBSERVER,
+            24: UnitTypeId.WARPPRISM,
+            25: UnitTypeId.IMMORTAL,
+            26: UnitTypeId.COLOSSUS,
+            27: UnitTypeId.DISRUPTOR,
+            28: UnitTypeId.PHOENIX,
+            29: UnitTypeId.VOIDRAY,
+            30: UnitTypeId.ORACLE,
+            31: UnitTypeId.TEMPEST,
+            32: UnitTypeId.CARRIER,
+            33: UnitTypeId.MOTHERSHIP,
+            # 34: UnitTypeId.INTERCEPTOR,  # TRAIN BY DEFAULT, DONT NEED TO TRAIN
+            # 35: UnitTypeId.ARCHON,  # CURRENT IMPOSSIBLE WITH THE API
+        }
+
+def get_human_readable_mapping():
+    idx_to_name = {}
+    name_to_idx = {}
+
+    idx = 0
+
+    # purpose is to make mappings between human-readable names and indices in the statespace:
+    # self.prev_state = np.concatenate((current_state,
+    #                                   my_unit_type_arr,
+    #                                   enemy_unit_type_arr,
+    #                                   pending,
+    #                                   last_act))
+
+    # current_state
+    current_state_names = [
+        'army_count',
+        'food_army',
+        'food_cap',
+        'food_used',
+        'idle_worker_count',
+        'larva_count',
+        'minerals',
+        'vespene',
+        'warp_gate_count'
+    ]
+
+    my_unit_type_names = []
+    for e in MY_POSSIBLES:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        my_unit_type_names.append(e)
+
+    enemy_unit_type_names = []
+    for e in ENEMY_POSSIBLES:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        enemy_unit_type_names.append(e)
+
+    for e in current_state_names + my_unit_type_names:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        # print(e)
+        idx_to_name[idx] = e
+        name_to_idx[e] = idx
+        idx += 1
+
+    # for i in index_to_upgrade.keys():
+    #     idx_to_name[i] = index_to_upgrade[i]
+    #     name_to_idx[index_to_upgrade[i]] = i
+    #     idx += 1
+
+    for e in enemy_unit_type_names:
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        # print(e)
+        idx_to_name[idx] = e
+        name_to_idx[e] = idx
+        idx += 1
+
+    # nop
+    # idx_to_name[idx] = 'nop'
+    # name_to_idx['nop'] = idx
+    # idx += 1
+
+    # pending
+    for e in my_unit_type_names:
+        e = "PENDING_" + e
+        idx_to_name[idx] = e
+        name_to_idx[e] = idx
+        idx += 1
+
+    # last act
+    e = 'last_act'
+    idx_to_name[idx] = e
+    name_to_idx[e] = idx
+    idx += 1
+
+    # print(idx_to_name)
+    # quit()
+
+    return idx_to_name, name_to_idx
+
+def get_human_readable_action_mapping():
+    idx_to_action = {}
+    idx = 0
+    for e in index_to_unit:
+        e = index_to_unit[e]
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        idx_to_action[idx] = e
+        idx += 1
+    for e in action_to_unit:
+        e = action_to_unit[e]
+        e = str(e)
+        e = e.replace('UnitTypeId.', '')
+        idx_to_action[idx] = e
+        idx += 1
+    for i in index_to_upgrade.keys():
+        idx_to_action[i] = index_to_upgrade[i]
+        idx += 1
+    # print(idx_to_action)
+    # quit()
+    return idx_to_action
 
 def my_units_to_type_count(unit_array_in):
     """

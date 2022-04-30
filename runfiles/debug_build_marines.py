@@ -16,6 +16,7 @@ import time
 import torch.multiprocessing as mp
 import argparse
 import build_marines_helpers
+import sc_helpers
 import numpy as np
 
 FAILED_REWARD = -0.0
@@ -77,13 +78,14 @@ if __name__ == '__main__':
     DEEPEN = args.deep  # Applies for 'prolo' deepen or no? Default false
     # torch.set_num_threads(NUM_PROCS)
     #dim_in = 14
-    dim_in = 30
-    dim_out = 10
+    dim_in = 194
+    dim_out = 44
     bot_name = AGENT_TYPE + 'SC_Macro'+'Medium'
     mp.set_sharing_strategy('file_system')
     if AGENT_TYPE == 'prolo':
-        idx_to_name, name_to_idx = build_marines_helpers.get_human_readable_mapping()
-        idx_to_action = build_marines_helpers.get_human_readable_action_mapping()
+        idx_to_name, name_to_idx = sc_helpers.get_human_readable_mapping()
+        print(len(idx_to_name))
+        idx_to_action = sc_helpers.get_human_readable_action_mapping()
         policy_agent = DeepProLoNet(distribution='one_hot',
                                     bot_name=bot_name,
                                     input_dim=dim_in,
@@ -94,7 +96,7 @@ if __name__ == '__main__':
                                     adversarial=ADVERSARIAL,
                                     deepen=DEEPEN,
                                     deterministic=True)
-        policy_agent.action_network.visualize_prolonet(idx_to_names=idx_to_name, idx_to_actions=idx_to_action)
+        policy_agent.action_network.visualize_prolonet(idx_to_names=idx_to_name, idx_to_actions=idx_to_action, raw_indices=True)
     elif AGENT_TYPE == 'fc':
         policy_agent = FCNet(input_dim=dim_in,
                              bot_name=bot_name,
@@ -112,16 +114,16 @@ if __name__ == '__main__':
         raise Exception('No valid network selected')
     start_time = time.time()
 
-    prev_state = np.zeros((len(TYPES)))
-    # prev_state = np.zeros((194))
-
-
-    prev_state[TYPES.FOOD_CAP.value] = 15
-
-    prev_state[TYPES.SCV.value] = 12
-
-
-    for i in range(0, 1):
-
-        action = policy_agent.get_action(prev_state)
-        print('Action:', action)
+    # prev_state = np.zeros((len(TYPES)))
+    # # prev_state = np.zeros((194))
+    #
+    #
+    # prev_state[TYPES.FOOD_CAP.value] = 15
+    #
+    # prev_state[TYPES.SCV.value] = 12
+    #
+    #
+    # for i in range(0, 1):
+    #
+    #     action = policy_agent.get_action(prev_state)
+    #     print('Action:', action)
