@@ -559,14 +559,14 @@ def discount_reward(reward, value, deeper_value):
     advantage_list = advantages.detach().clone().cpu().numpy().tolist()
     return rewards_list, advantage_list, deeper_advantage_list
 
-def run_episode(q, main_agent):
+def run_episode(q, main_agent, episode):
     result = None
     agent_in = main_agent.duplicate()
 
     bot = StarmniBot(rl_agent=agent_in)
 
     try: # TODO: replace this with the correct minigame map and set up the game
-        replay_filename = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")) + '_' + str(main_agent.bot_name) + '.SC2REPLAY'
+        replay_filename = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")) + '_e-' + str(episode) + '_' + str(main_agent.bot_name) + '.SC2REPLAY'
         result = sc2.run_game(sc2.maps.get("BuildBCs"),
                               [Bot(Race.Terran, bot)],
                               realtime=False,
@@ -596,7 +596,7 @@ def main(episodes, agent, num_processes):
         successful_runs = 0
         master_reward, reward, running_reward = 0, 0, 0
         try:
-            returned_object = run_episode(None, main_agent=agent)
+            returned_object = run_episode(None, main_agent=agent, episode=episode)
             master_reward += returned_object[0]
             running_reward_array.append(returned_object[0])
             agent.replay_buffer.extend(returned_object[1])
