@@ -177,7 +177,7 @@ class DeepProLoNet:
         # Copy over new decision node params from shallower network to deeper network
         bot_name = '../txts/' + self.bot_name + str(num_processes) + '_processes'
         with open(bot_name + '_rewards.txt', 'a') as myfile:
-            myfile.write(str(timesteps) + '\n')
+            myfile.write(str(timesteps) + ', ' + str(value_loss) + ', ' + str(action_loss) + '\n')
         self.epsilon = max(self.epsilon*self.epsilon_decay, self.epsilon_min)
 
     def lower_lr(self):
