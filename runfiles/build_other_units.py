@@ -566,10 +566,11 @@ def run_episode(q, main_agent):
     bot = StarmniBot(rl_agent=agent_in)
 
     try: # TODO: replace this with the correct minigame map and set up the game
+        replay_filename = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")) + '_' + str(main_agent.bot_name) + '.SC2REPLAY'
         result = sc2.run_game(sc2.maps.get("BuildBCs"),
                               [Bot(Race.Terran, bot)],
                               realtime=False,
-                              save_replay_as=os.path.join('replays', datetime.now().strftime("%Y-%m-%d_%H-%M-%S.SC2REPLAY")))
+                              save_replay_as=os.path.join('replays', replay_filename))
     except KeyboardInterrupt:
         result = [-1, -1]
     except Exception as e:
