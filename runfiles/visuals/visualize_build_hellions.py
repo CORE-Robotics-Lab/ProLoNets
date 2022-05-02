@@ -5,13 +5,13 @@ import sys
 sys.path.insert(0, os.path.abspath('../../'))
 
 from agents.prolonet_agent import DeepProLoNet
-import build_other_units_helpers
+from runfiles.sc_build_hellions_helpers import get_human_readable_mapping, get_human_readable_action_mapping
 import visualize_prolonet
 
 
 if __name__ == '__main__':
-    idx_to_name, name_to_idx = build_other_units_helpers.get_human_readable_mapping()
-    idx_to_action = build_other_units_helpers.get_human_readable_action_mapping()
+    idx_to_name, name_to_idx = get_human_readable_mapping()
+    idx_to_action = get_human_readable_action_mapping()
     dim_in = len(idx_to_name)
     dim_out = len(idx_to_action)
     bot_name = 'prolo' + '_hellions'

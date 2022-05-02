@@ -5,7 +5,7 @@ sys.path.insert(0, '../')
 from agents.vectorized_prolonet import ProLoNet
 import torch
 
-from runfiles.build_other_units_helpers import EXPANDED_TYPES
+from runfiles.sc_build_hellions_helpers import EXPANDED_TYPES
 
 def init_cart_nets(distribution, use_gpu=False, vectorized=False, randomized=False):
     dim_in = 4
@@ -959,6 +959,7 @@ def init_sc_nets_nonvec(dist='one_hot', use_gpu=False, randomized=False):
                       device='cuda' if use_gpu else 'cpu',
                       is_value=True)
     return actor, critic
+
 
 def init_sc_nets_vectorized(dist='one_hot', use_gpu=False, randomized=False):
     dim_in = 194
