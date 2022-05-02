@@ -20,8 +20,8 @@ import time
 import torch.multiprocessing as mp
 import argparse
 
-DEBUG = True
-SUPER_DEBUG = True
+DEBUG = False
+SUPER_DEBUG = False
 if SUPER_DEBUG:
     DEBUG = True
 
@@ -130,11 +130,6 @@ class StarmniBot(sc2.BotAI):
                                           pending,
                                           last_act))
 
-        print('current_state:\n', current_state)
-        print('my_unit_type_arr:\n', my_unit_type_arr)
-        print('pending:\n', pending)
-        print('last_act:\n', last_act)
-        print('PREVIOUS STATE:\n\n', self.prev_state)
 
         action = self.agent.get_action(self.prev_state)
         self.last_reward = await self.activate_sub_bot(action)
@@ -922,7 +917,7 @@ def bernoulli_main(episodes, agent_in, num_processes):
             return False
 
     win_prob = 0.25
-    min_games = 1
+    min_games = 15
     alpha = 0.05
     k, n, successful_runs, master_reward, reward, running_reward = 0, 0, 0, 0, 0, 0
     find_new_step = True

@@ -2,9 +2,9 @@
 import numpy as np
 import sys
 sys.path.insert(0, '../')
+from agents.vectorized_prolonet import ProLoNet
 import torch
 
-from agents.vectorized_prolonet import ProLoNet
 from runfiles.build_other_units_helpers import EXPANDED_TYPES
 
 def init_cart_nets(distribution, use_gpu=False, vectorized=False, randomized=False):
