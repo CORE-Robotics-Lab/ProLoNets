@@ -488,6 +488,8 @@ def run_episode(q, main_agent, episode):
 
     try: # TODO: replace this with the correct minigame map and set up the game
         replay_filename = str(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")) + '_e-' + str(episode) + '_' + str(main_agent.bot_name) + '.SC2REPLAY'
+        # Alex: I'm not exactly sure of the providence of this map, but we can put a copy here for now:
+        # https://drive.google.com/file/d/1GN8pqpxOFhaS7TujRdnmhnO02POJtAD-/view?usp=sharing
         result = sc2.run_game(sc2.maps.get("BuildBCs"),
                               [Bot(Race.Terran, bot)],
                               realtime=False,
