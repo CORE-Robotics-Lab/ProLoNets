@@ -213,8 +213,8 @@ def get_human_readable_action_mapping():
     for i in index_to_upgrade.keys():
         idx_to_action[i] = index_to_upgrade[i]
         idx += 1
-    # print(idx_to_action)
-    # quit()
+    idx_to_action[idx] = 'nop'
+    idx += 1
     return idx_to_action
 
 def my_units_to_type_count(unit_array_in):
