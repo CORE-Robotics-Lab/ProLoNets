@@ -10,7 +10,6 @@ import visualize_prolonet
 
 
 if __name__ == '__main__':
-    #dim_in = 14
     idx_to_name, name_to_idx = build_other_units_helpers.get_human_readable_mapping()
     idx_to_action = build_other_units_helpers.get_human_readable_action_mapping()
     dim_in = len(idx_to_name)
@@ -44,7 +43,7 @@ if __name__ == '__main__':
                                           save_fig_filename='../figures/1thprolo_hellions_action_network.png',
                                           save_fig_dimensions=(14, 15))
 
-    load_result = policy_agent.load_filename('../../../good_models/server_run/1000thprolo_hellions_gpu')
+    load_result = policy_agent.load(fn_botname='../../../good_models/server_run/1000thprolo_hellions_gpu')
     if not load_result:
         print("model file not found")
         quit()
@@ -64,7 +63,7 @@ if __name__ == '__main__':
                                           save_fig_filename='../figures/1000thprolo_hellions_action_network.png',
                                           save_fig_dimensions=(18, 15))
 
-    load_result = policy_agent.load_filename('../../../good_models/server_run/100thprolo_hellions_rand_gpu')
+    load_result = policy_agent.load(fn_botname='../../../good_models/server_run/100thprolo_hellions_rand_gpu')
     if not load_result:
         print("model file not found")
         quit()
@@ -107,7 +106,7 @@ if __name__ == '__main__':
                                           save_fig_filename='../figures/1000thprolo_hellions_rand_action_network.png',
                                           save_fig_dimensions=(width, height))
 
-    load_result = policy_agent.load_filename('../models/100thprolo_hellions')
+    load_result = policy_agent.load(fn_botname='../models/100thprolo_hellions')
     if not load_result:
         print("model file not found")
         quit()
@@ -131,7 +130,7 @@ if __name__ == '__main__':
                                           save_fig_filename='../figures/100thprolo_hellions_alex_run_action_network.png',
                                           save_fig_dimensions=(width, height))
 
-    load_result = policy_agent.load_filename('../models/1000thprolo_hellions')
+    load_result = policy_agent.load(fn_botname='../models/1000thprolo_hellions')
     if not load_result:
         print("model file not found")
         quit()

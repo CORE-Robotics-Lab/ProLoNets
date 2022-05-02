@@ -83,7 +83,6 @@ class DeepProLoNet:
         self.ppo = ppo_update.PPO([self.action_network, self.value_network], two_nets=True, use_gpu=use_gpu)
         self.actor_opt = torch.optim.RMSprop(self.action_network.parameters(), lr=1e-5)
         self.value_opt = torch.optim.RMSprop(self.value_network.parameters(), lr=1e-5)
-
         if self.deepen:
             self.deeper_action_network = add_level(self.action_network, use_gpu=use_gpu)
             self.deeper_value_network = add_level(self.value_network, use_gpu=use_gpu)
@@ -107,8 +106,6 @@ class DeepProLoNet:
         self.reward_history = []
         self.num_steps = 0
 
-
-
     def get_action(self, observation):
         with torch.no_grad():
             obs = torch.Tensor(observation)
@@ -121,8 +118,8 @@ class DeepProLoNet:
             probs = probs.view(-1).cpu()
             self.full_probs = probs
             # print('action probs:', probs)
-            if self.action_network.input_dim >= 50:
-                probs, inds = torch.topk(probs, 5)
+            if self.action_network.input_dim >= 33:
+                probs, inds = torch.topk(probs, 3)
             m = Categorical(probs)
             action = m.sample()
             if self.deterministic:
@@ -137,17 +134,17 @@ class DeepProLoNet:
                 deeper_value_pred = self.deeper_value_network(obs)
                 deeper_probs = deeper_probs.view(-1).cpu()
                 self.deeper_full_probs = deeper_probs
-                if self.action_network.input_dim >= 50:
-                    deeper_probs, _ = torch.topk(probs,5)
+                if self.action_network.input_dim >= 33:
+                    deeper_probs, _ = torch.topk(probs,3)
                 deep_m = Categorical(deeper_probs)
                 deep_log_probs = deep_m.log_prob(action)
                 self.last_deep_action_probs = deep_log_probs.cpu()
                 self.last_deep_value_pred = deeper_value_pred.view(-1).cpu()
-            if self.action_network.input_dim >= 50:
+            if self.action_network.input_dim >= 33:
                 self.last_action = inds[action].cpu()
             else:
                 self.last_action = action.cpu()
-        if self.action_network.input_dim >= 50:
+        if self.action_network.input_dim >= 33:
             action = inds[action].item()
         else:
             action = action.item()
@@ -166,13 +163,12 @@ class DeepProLoNet:
         return True
 
     def end_episode(self, timesteps, num_processes):
-        # print("REPLAY BUFFER: ", self.replay_buffer)
         value_loss, action_loss = self.ppo.batch_updates(self.replay_buffer, self, go_deeper=self.deepen)
         self.num_steps += 1
         # Copy over new decision node params from shallower network to deeper network
         bot_name = '../txts/' + self.bot_name + str(num_processes) + '_processes'
         with open(bot_name + '_rewards.txt', 'a') as myfile:
-            myfile.write(str(timesteps) + ', ' + str(value_loss) + ', ' + str(action_loss) + '\n')
+            myfile.write(str(timesteps) + '\n')
         self.epsilon = max(self.epsilon*self.epsilon_decay, self.epsilon_min)
 
     def lower_lr(self):
@@ -197,9 +193,13 @@ class DeepProLoNet:
             save_prolonet(deep_act_fn, self.deeper_action_network)
             save_prolonet(deep_val_fn, self.deeper_value_network)
 
-    def load(self, fn='last'):
-        act_fn = fn + self.bot_name + '_actor_' + '.pth.tar'
-        val_fn = fn + self.bot_name + '_critic_' + '.pth.tar'
+    def load(self, fn='last', fn_botname=None):
+        if fn_botname == None:
+            act_fn = fn + self.bot_name + '_actor_' + '.pth.tar'
+            val_fn = fn + self.bot_name + '_critic_' + '.pth.tar'
+        else:
+            act_fn = fn + '_actor_' + '.pth.tar'
+            val_fn = fn + '_critic_' + '.pth.tar'
 
         deep_act_fn = fn + self.bot_name + '_deep_actor_' + '.pth.tar'
         deep_val_fn = fn + self.bot_name + '_deep_critic_' + '.pth.tar'
@@ -210,23 +210,6 @@ class DeepProLoNet:
                 self.deeper_action_network = load_prolonet(deep_act_fn)
                 self.deeper_value_network = load_prolonet(deep_val_fn)
         else:
-            return False
-        return True
-
-    def load_filename(self, fn):
-        act_fn = fn + '_actor_' + '.pth.tar'
-        val_fn = fn + '_critic_' + '.pth.tar'
-
-        deep_act_fn = fn + '_deep_actor_' + '.pth.tar'
-        deep_val_fn = fn + '_deep_critic_' + '.pth.tar'
-        if os.path.exists(act_fn):
-            self.action_network = load_prolonet(act_fn)
-            self.value_network = load_prolonet(val_fn)
-            if self.deepen:
-                self.deeper_action_network = load_prolonet(deep_act_fn)
-                self.deeper_value_network = load_prolonet(deep_val_fn)
-        else:
-            print('file not found:', act_fn)
             return False
         return True
 
