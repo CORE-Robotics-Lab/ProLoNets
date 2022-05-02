@@ -99,14 +99,6 @@ class StarmniBot(sc2.BotAI):
                            Point2(Pointlike([min_x, min_y])),
                            Point2(Pointlike([max_x, max_y])),
                            Point2(Pointlike([max_x, min_y]))]
-            #closest_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[0])
-            #closest = 0
-            #for corner in range(1, len(self.corners)):
-            #    corner_dist = self.units(UnitTypeId.COMMANDCENTER).first.distance_to(self.corners[corner])
-            #    if corner_dist < closest_dist:
-            #        closest = corner
-            #        closest_dist = corner_dist
-            #del self.corners[closest]  # is this just used for scouting? In that case, we don't need it.
 
         self.itercount += 1
         # if self.itercount % 10 != 0:
@@ -136,17 +128,10 @@ class StarmniBot(sc2.BotAI):
                                           pending,
                                           last_act))
 
-        # print('current_state:\n', current_state)
-        # print('my_unit_type_arr:\n', my_unit_type_arr)
-        # print('pending:\n', pending)
-        # print('last_act:\n', last_act)
-        # print('PREVIOUS STATE:\n\n', self.prev_state)
-
         action = self.agent.get_action(self.prev_state)
         # TODO: abstract the act of getting an action into our own agent
         self.last_reward = await self.activate_sub_bot(action)  # delegates the specific action to the baby bots below
         self.last_reward -= STEP_PENALTY
-        # print(self.last_reward)
         self.agent.save_reward(self.last_reward)
         self.last_sc_action = action
         try:
@@ -201,11 +186,6 @@ class StarmniBot(sc2.BotAI):
         """
         self.debug_count += 1
 
-        # if self.debug_count % 10 == 0:
-        #     hard_coded_choice = 1
-        # else:
-        #     hard_coded_choice = 1
-
         unit_choice = hard_coded_choice
         if SUPER_DEBUG:
             print(sc_build_hellions_helpers.my_units_to_str(unit_choice), 'idx:', unit_choice)
@@ -239,8 +219,6 @@ class StarmniBot(sc2.BotAI):
                 positions_for_depots_idx = 0
                 target_pt = self.positions_for_depots[positions_for_depots_idx]
                 pos_ind = 0
-            # print("depot locations remaining:", len(self.positions_for_depots))
-            # target_pt = self.positions_for_depots[0]
             if target_pt is None:  # the target building is a command center or a refinery
                 try:
                     success = await self.build_building(unit_choice, None)
@@ -334,7 +312,6 @@ class StarmniBot(sc2.BotAI):
                 else:
                     pos = placement_location
                 worker = self.select_build_worker(pos, force=True)
-                # print("worker:", worker)
                 if worker is not None:
                     if building_target == UnitTypeId.SUPPLYDEPOT:
                         self.action_buffer.append(worker.build(building_target, pos))
@@ -437,60 +414,6 @@ class StarmniBot(sc2.BotAI):
                         return FAILED_REWARD
 
         return FAILED_REWARD
-    '''
-    async def research_upgrade(self, research_index):
-        # could be interesting to leave for future stuff but not particularly useful for Make Marines
-        index_to_upgrade = {
-            34: "ground_attacks",
-            35: "air_attacks",
-            36: "ground_armor",
-            37: "air_armor",
-            38: "shields",
-            39: "speed",
-            40: "range",
-            41: "spells",
-            42: "misc"
-        }
-        research_topic = index_to_upgrade[research_index]
-        if research_topic in ["ground_attacks", "ground_armor", "shields"]:
-            if self.units(UnitTypeId.FORGE).exists:
-                forge = self.units(UnitTypeId.FORGE).random
-                abilities = await self.get_available_abilities(forge)
-                if research_topic == "ground_attacks":
-                    all_topics = [AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL1,
-                                  AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL2,
-                                  AbilityId.FORGERESEARCH_PROTOSSGROUNDWEAPONSLEVEL3]
-                elif research_topic == "ground_armor":
-                    all_topics = [AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL1,
-                                  AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL2,
-                                  AbilityId.FORGERESEARCH_PROTOSSGROUNDARMORLEVEL3]
-                elif research_topic == "shields":
-                    all_topics = [AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL1,
-                                  AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL2,
-                                  AbilityId.FORGERESEARCH_PROTOSSSHIELDSLEVEL3]
-                for topic in all_topics:
-                    if topic in abilities:
-                        self.action_buffer.append(forge(topic))
-                        return SUCCESS_BUILD_REWARD
-            return FAILED_REWARD
-        elif research_topic in ["air_attacks", "air_armor"]:
-            if self.units(UnitTypeId.CYBERNETICSCORE).exists:
-                core = self.units(UnitTypeId.CYBERNETICSCORE).random
-                abilities = await self.get_available_abilities(core)
-                if research_topic == "air_attacks":
-                    air_research = [AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRWEAPONSLEVEL1,
-                                    AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRWEAPONSLEVEL2,
-                                    AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRWEAPONSLEVEL3]
-                elif research_topic == "air_armor":
-                    air_research = [AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRARMORLEVEL1,
-                                    AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRARMORLEVEL1,
-                                    AbilityId.CYBERNETICSCORERESEARCH_PROTOSSAIRARMORLEVEL1]
-                for topic in air_research:
-                    if topic in abilities:
-                        self.action_buffer.append(core(topic))
-                        return SUCCESS_BUILD_REWARD
-            return FAILED_REWARD
-    '''
     async def back_to_mining(self):
         reassigned_miners = 0
         for a in self.units(UnitTypeId.REFINERY):
