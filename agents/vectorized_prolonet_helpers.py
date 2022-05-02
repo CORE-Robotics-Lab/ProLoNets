@@ -5,7 +5,6 @@ sys.path.insert(0, '../')
 import torch
 
 from agents.vectorized_prolonet import ProLoNet
-from runfiles.build_marines_helpers import TYPES
 from runfiles.build_other_units_helpers import EXPANDED_TYPES
 
 def init_cart_nets(distribution, use_gpu=False, vectorized=False, randomized=False):
@@ -609,138 +608,11 @@ def init_sc_nets(dist='one_hot', use_gpu=False, vectorized=False, randomized=Fal
     else:
         return init_sc_nets_nonvec(dist, use_gpu, randomized)
 
-def init_sc_build_marines_net(dist='one_hot', use_gpu=False, vectorized=False, randomized=False):
-    if vectorized:
-        print('Vectorized not supported.')
-    else:
-        return init_sc_build_marines_net_novec(dist, use_gpu, randomized)
-
 def init_sc_build_hellions_net(dist='one_hot', use_gpu=False, vectorized=False, randomized=False):
     if vectorized:
         print('Vectorized not supported.')
     else:
         return init_sc_build_hellions_net_novec(dist, use_gpu, randomized)
-
-
-def init_sc_build_marines_net_novec(dist='one_hot', use_gpu=False, randomized=False):
-    dim_in = len(TYPES)
-    dim_out = 10
-
-    #food_cap - food_used < 4 go left
-    #-food_cap + food_used > -4 go left
-    #-food_cap + food_used-4 > go left
-    w0 = np.zeros(dim_in)
-    w0[TYPES.FOOD_CAP.value] = -1  # negative food capacity
-    w0[TYPES.FOOD_USED.value] = 1  # plus food used = negative food available
-    c0 = [-8]  # > -4  (so if positive < 4)
-
-    #scv_count < 18 go left
-    #-scv_count > -18 go left
-    #-scv_count-18 > 0 go left
-    w1 = np.zeros(dim_in)
-    w1[TYPES.SCV.value] = -1
-    c1 = [-16]
-
-    #barracks < 1 go left
-    #-barracks > -1 go left
-    w2 = np.zeros(dim_in)
-    w2[TYPES.BARRACKS.value] = -1
-    c2 = [-0.5]
-
-    #barracks - pending_marines > 0 go left
-    w3 = np.zeros(dim_in)
-    w3[TYPES.BARRACKS.value] = 1
-    w3[TYPES.PENDING_MARINE.value] = -1
-    c3 = [-0.5]
-
-    init_weights = [
-        w0,
-        w1,
-        w2,
-        w3,
-    ]
-    init_comparators = [
-        c0,
-        c1,
-        c2,
-        c3,
-    ]
-
-    if dist == 'one_hot':
-        leaf_base_init_val = 0.
-        leaf_target_init_val = 1.
-    elif dist == 'soft_hot':
-        leaf_base_init_val = 0.1 / (max(dim_out - 1, 1))
-        leaf_target_init_val = 0.9
-    else:  # uniform
-        leaf_base_init_val = 1.0 / dim_out
-        leaf_target_init_val = 1.0 / dim_out
-    leaf_base = [leaf_base_init_val] * dim_out
-
-    # Supply
-    # left from [0]     (Food)
-    # right from []
-    l0 = [[0], [], leaf_base.copy()]
-    l0[-1][1] = leaf_target_init_val
-
-    # SCV
-    # left from [1]     (SCV)
-    # right from []
-    l1 = [[1], [0], leaf_base.copy()]
-    l1[-1][8] = leaf_target_init_val
-
-    # Barracks initial
-    # left from [2]     (Barracks initial?)
-    # right from [0, 1] (Food, SCV)
-    l2 = [[2], [0, 1], leaf_base.copy()]
-    l2[-1][3] = leaf_target_init_val
-
-    # Barracks busy
-    # Marines
-    # left from [3]     (Barracks busy?)
-    # right from [0, 1, 2]  (Food, SCV, Barracks initial?)
-    l3 = [[3], [0, 1, 2], leaf_base.copy()]
-    l3[-1][9] = leaf_target_init_val
-
-    # Barracks
-    # left from []
-    # right from [0, 1, 2, 3]   (everything)
-    l4 = [[], [0, 1, 2, 3], leaf_base.copy()]
-    l4[-1][3] = leaf_target_init_val
-
-
-    init_leaves = [
-        l0,
-        l1,
-        l2,
-        l3,
-        l4,
-    ]
-
-    if randomized:
-        init_weights = None
-        init_comparators = None
-        init_leaves = 16
-
-    actor = ProLoNet(input_dim=dim_in,
-                     output_dim=dim_out,
-                     weights=init_weights,
-                     comparators=init_comparators,
-                     leaves=init_leaves,
-                     alpha=2,
-                     vectorized=False,
-                     device='cuda' if use_gpu else 'cpu',
-                     is_value=False)
-    critic = ProLoNet(input_dim=dim_in,
-                      output_dim=dim_out,
-                      weights=init_weights,
-                      comparators=init_comparators,
-                      leaves=init_leaves,
-                      alpha=1,
-                      vectorized=False,
-                      device='cuda' if use_gpu else 'cpu',
-                      is_value=True)
-    return actor, critic
 
 def init_sc_build_hellions_net_novec(dist='one_hot', use_gpu=False, randomized=False):
     dim_in = len(EXPANDED_TYPES)
