@@ -214,6 +214,26 @@ class DeepProLoNet:
             if self.deepen:
                 self.deeper_action_network = load_prolonet(deep_act_fn)
                 self.deeper_value_network = load_prolonet(deep_val_fn)
+        else:
+            return False
+        return True
+
+    def load_filename(self, fn):
+        act_fn = fn + '_actor_' + '.pth.tar'
+        val_fn = fn + '_critic_' + '.pth.tar'
+
+        deep_act_fn = fn + '_deep_actor_' + '.pth.tar'
+        deep_val_fn = fn + '_deep_critic_' + '.pth.tar'
+        if os.path.exists(act_fn):
+            self.action_network = load_prolonet(act_fn)
+            self.value_network = load_prolonet(val_fn)
+            if self.deepen:
+                self.deeper_action_network = load_prolonet(deep_act_fn)
+                self.deeper_value_network = load_prolonet(deep_val_fn)
+        else:
+            print('file not found:', act_fn)
+            return False
+        return True
 
     def deepen_networks(self):
         if not self.deepen or self.num_times_deepened > 8:

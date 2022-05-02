@@ -151,6 +151,10 @@ def get_human_readable_action_mapping():
         e = e.replace('UnitTypeId.', '')
         idx_to_action[idx] = e
         idx += 1
+
+    idx_to_action[idx] = 'back_to_mining'
+    idx += 1
+
     return idx_to_action
 
 def get_unit_data(unit_in):
