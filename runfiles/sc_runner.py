@@ -130,7 +130,6 @@ class StarmniBot(sc2.BotAI):
                                           pending,
                                           last_act))
 
-
         action = self.agent.get_action(self.prev_state)
         self.last_reward = await self.activate_sub_bot(action)
         self.last_reward -= STEP_PENALTY
