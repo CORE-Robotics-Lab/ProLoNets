@@ -14,7 +14,7 @@ from agents.prolonet_agent import DeepProLoNet
 from agents.py_djinn_agent import DJINNAgent
 from agents.lstm_agent import LSTMNet
 from agents.baseline_agent import FCNet
-from ICML.runfiles import sc_helpers
+from runfiles import sc_helpers
 import numpy as np
 import time
 import torch.multiprocessing as mp

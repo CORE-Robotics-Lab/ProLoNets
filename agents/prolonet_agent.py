@@ -4,7 +4,8 @@ import sys
 sys.path.insert(0, '../')
 from opt_helpers import replay_buffer, ppo_update
 from agents.vectorized_prolonet_helpers import init_cart_nets, swap_in_node, add_level, \
-    init_lander_nets, init_micro_net, init_adversarial_net, init_sc_nets, save_prolonet, load_prolonet, init_fire_nets
+    init_lander_nets, init_micro_net, init_adversarial_net, init_sc_nets, \
+    init_sc_build_hellions_net, save_prolonet, load_prolonet, init_fire_nets
 import copy
 import os
 
@@ -70,6 +71,8 @@ class DeepProLoNet:
                                                                                distribution_in=distribution,
                                                                                adv_prob=self.adv_prob)
                 self.bot_name += '_adversarial' + str(self.adv_prob)
+        elif input_dim == 32 and output_dim == 12:   # SC Build Hellions
+            self.action_network, self.value_network = init_sc_build_hellions_net(distribution, use_gpu, vectorized, randomized)
         elif input_dim == 6 and output_dim == 5:  # Fire Sim
             self.action_network, self.value_network = init_fire_nets(distribution,
                                                                      use_gpu,
@@ -114,7 +117,7 @@ class DeepProLoNet:
             value_pred = self.value_network(obs)
             probs = probs.view(-1).cpu()
             self.full_probs = probs
-            if self.action_network.input_dim > 30:
+            if self.action_network.input_dim >= 33:
                 probs, inds = torch.topk(probs, 3)
             m = Categorical(probs)
             action = m.sample()
@@ -130,17 +133,17 @@ class DeepProLoNet:
                 deeper_value_pred = self.deeper_value_network(obs)
                 deeper_probs = deeper_probs.view(-1).cpu()
                 self.deeper_full_probs = deeper_probs
-                if self.action_network.input_dim > 30:
+                if self.action_network.input_dim >= 33:
                     deeper_probs, _ = torch.topk(probs, 3)
                 deep_m = Categorical(deeper_probs)
                 deep_log_probs = deep_m.log_prob(action)
                 self.last_deep_action_probs = deep_log_probs.cpu()
                 self.last_deep_value_pred = deeper_value_pred.view(-1).cpu()
-            if self.action_network.input_dim > 30:
+            if self.action_network.input_dim >= 33:
                 self.last_action = inds[action].cpu()
             else:
                 self.last_action = action.cpu()
-        if self.action_network.input_dim > 30:
+        if self.action_network.input_dim >= 33:
             action = inds[action].item()
         else:
             action = action.item()
@@ -189,9 +192,13 @@ class DeepProLoNet:
             save_prolonet(deep_act_fn, self.deeper_action_network)
             save_prolonet(deep_val_fn, self.deeper_value_network)
 
-    def load(self, fn='last'):
-        act_fn = fn + self.bot_name + '_actor_' + '.pth.tar'
-        val_fn = fn + self.bot_name + '_critic_' + '.pth.tar'
+    def load(self, fn='last', fn_botname=None):
+        if fn_botname == None:
+            act_fn = fn + self.bot_name + '_actor_' + '.pth.tar'
+            val_fn = fn + self.bot_name + '_critic_' + '.pth.tar'
+        else:
+            act_fn = fn + '_actor_' + '.pth.tar'
+            val_fn = fn + '_critic_' + '.pth.tar'
 
         deep_act_fn = fn + self.bot_name + '_deep_actor_' + '.pth.tar'
         deep_val_fn = fn + self.bot_name + '_deep_critic_' + '.pth.tar'
@@ -201,6 +208,9 @@ class DeepProLoNet:
             if self.deepen:
                 self.deeper_action_network = load_prolonet(deep_act_fn)
                 self.deeper_value_network = load_prolonet(deep_val_fn)
+        else:
+            return False
+        return True
 
     def deepen_networks(self):
         if not self.deepen or self.num_times_deepened > 8:
