@@ -218,23 +218,23 @@ class DeepProLoNet:
         self.entropy_leaf_checks()
         # Copy over shallow params to deeper network
         for weight_index in range(len(self.action_network.layers)):
-            new_act_weight = torch.Tensor(self.action_network.layers[weight_index].cpu().data.numpy())
-            new_act_comp = torch.Tensor(self.action_network.comparators[weight_index].cpu().data.numpy())
+            new_act_weight = torch.tensor(self.action_network.layers[weight_index].weight.data.cpu().detach().data.numpy())
+            new_act_comp = torch.tensor(self.action_network.comparators[weight_index].weight.data.cpu().detach().data.numpy())
 
             if self.use_gpu:
                 new_act_weight = new_act_weight.cuda()
                 new_act_comp = new_act_comp.cuda()
 
-            self.deeper_action_network.layers[weight_index].data = new_act_weight
-            self.deeper_action_network.comparators[weight_index].data = new_act_comp
+            self.deeper_action_network.layers[weight_index].weight.data = new_act_weight
+            self.deeper_action_network.comparators[weight_index].weight.data = new_act_comp
         for weight_index in range(len(self.value_network.layers)):
-            new_val_weight = torch.Tensor(self.value_network.layers[weight_index].cpu().data.numpy())
-            new_val_comp = torch.Tensor(self.value_network.comparators[weight_index].cpu().data.numpy())
+            new_val_weight = torch.Tensor(self.value_network.layers[weight_index].weight.data.cpu().detach().data.numpy())
+            new_val_comp = torch.Tensor(self.value_network.comparators[weight_index].weight.data.cpu().detach().data.numpy())
             if self.use_gpu:
                 new_val_weight = new_val_weight.cuda()
                 new_val_comp = new_val_comp.cuda()
-            self.deeper_value_network.layers[weight_index].data = new_val_weight
-            self.deeper_value_network.comparators[weight_index].data = new_val_comp
+            self.deeper_value_network.layers[weight_index].weight.data = new_val_weight
+            self.deeper_value_network.comparators[weight_index].weight.data = new_val_comp
 
     def entropy_leaf_checks(self):
         leaf_max = torch.nn.Softmax(dim=0)

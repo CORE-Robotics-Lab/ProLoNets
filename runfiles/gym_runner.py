@@ -32,13 +32,13 @@ def run_episode(q, agent_in, ENV_NAME, env_seed_in=42):
         torch.random.manual_seed(env_seed_in)
         random.seed(env_seed_in)
 
-    state = env.reset()  # Reset environment and record the starting state
+    state, _ = env.reset()  # Reset environment and record the starting state
     done = False
 
     while not done:
         action = agent.get_action(state)
         # Step through environment using chosen action
-        state, reward, done, _ = env.step(action)
+        state, reward, done, _, _ = env.step(action)
         # Save reward
         agent.save_reward(reward)
         if done:

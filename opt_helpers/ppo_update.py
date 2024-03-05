@@ -174,23 +174,23 @@ class PPO:
                 deep_total_value_loss = deep_total_value_loss + deeper_value_loss
                 # Copy over shallow params to deeper network
                 for weight_index in range(len(self.actor.layers)):
-                    new_act_weight = torch.Tensor(self.actor.layers[weight_index].cpu().data.numpy())
-                    new_act_comp = torch.Tensor(self.actor.comparators[weight_index].cpu().data.numpy())
+                    new_act_weight = torch.tensor(self.actor.layers[weight_index].weight.data.cpu().detach().data.numpy())
+                    new_act_comp = torch.tensor(self.actor.comparators[weight_index].weight.data.cpu().detach().data.numpy())
 
                     if self.use_gpu:
                         new_act_weight = new_act_weight.cuda()
                         new_act_comp = new_act_comp.cuda()
+                    agent_in.deeper_action_network.layers[weight_index].weight.data = new_act_weight
+                    agent_in.deeper_action_network.comparators[weight_index].weight.data = new_act_comp
 
-                    agent_in.deeper_action_network.layers[weight_index].data = new_act_weight
-                    agent_in.deeper_action_network.comparators[weight_index].data = new_act_comp
                 for weight_index in range(len(self.critic.layers)):
-                    new_val_weight = torch.Tensor(self.critic.layers[weight_index].cpu().data.numpy())
-                    new_val_comp = torch.Tensor(self.critic.comparators[weight_index].cpu().data.numpy())
+                    new_val_weight = torch.Tensor(self.critic.layers[weight_index].weight.data.cpu().detach().data.numpy())
+                    new_val_comp = torch.Tensor(self.critic.comparators[weight_index].weight.data.cpu().detach().data.numpy())
                     if self.use_gpu:
                         new_val_weight = new_val_weight.cuda()
                         new_val_comp = new_val_comp.cuda()
-                    agent_in.deeper_value_network.layers[weight_index].data = new_val_weight
-                    agent_in.deeper_value_network.comparators[weight_index].data = new_val_comp
+                    agent_in.deeper_value_network.layers[weight_index].weight.data = new_val_weight
+                    agent_in.deeper_value_network.comparators[weight_index].weight.data = new_val_comp
 
             update_m = Categorical(new_action_probs)
             update_log_probs = update_m.log_prob(action_taken)

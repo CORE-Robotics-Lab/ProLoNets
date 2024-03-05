@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 sys.path.insert(0, '../')
+
 from agents.vectorized_prolonet import ProLoNet
 import torch
 
@@ -188,10 +189,10 @@ def init_cart_nets(distribution, use_gpu=False, vectorized=False, randomized=Fal
 
 def add_level(pro_lo_net, split_noise_scale=0.2, use_gpu=False):
     old_weights = pro_lo_net.layers  # Get the weights out
-    new_weights = [weight.detach().clone().data.cpu().numpy() for weight in old_weights]
+    new_weights = [weight.weight.data.detach().clone().data.cpu().numpy() for weight in old_weights]
 
     old_comparators = pro_lo_net.comparators  # get the comparator values out
-    new_comparators = [comp.detach().clone().data.cpu().numpy() for comp in
+    new_comparators = [comp.weight.data.detach().clone().data.cpu().numpy() for comp in
                        old_comparators]
     old_leaf_information = pro_lo_net.leaf_init_information  # get the leaf init info out
 
@@ -213,9 +214,9 @@ def add_level(pro_lo_net, split_noise_scale=0.2, use_gpu=False):
         )
 
         new_weight = np.random.normal(scale=split_noise_scale,
-                                      size=old_weights[weight_index].size()[0])
+                                      size=old_weights[weight_index].weight.data.t().size()[0])
         new_comparator = np.random.normal(scale=split_noise_scale,
-                                          size=old_comparators[weight_index].size()[0])
+                                          size=old_comparators[weight_index].weight.data.size()[0])
 
         new_weights.append(new_weight)  # Add it to the list of nodes
         new_comparators.append(new_comparator)  # Add it to the list of nodes
@@ -262,9 +263,9 @@ def swap_in_node(network, deeper_network, leaf_index, use_gpu=False):
     left_path = leaf_information[0]
     right_path = leaf_information[1]
     if deeper_network is not None:
-        deeper_weights = [weight.detach().clone().data.cpu().numpy() for weight in deeper_network.layers]
+        deeper_weights = [weight.weight.data.detach().clone().data.cpu().numpy() for weight in deeper_network.layers]
 
-        deeper_comparators = [comp.detach().clone().data.cpu().numpy() for comp in
+        deeper_comparators = [comp.weight.data.detach().clone().data.cpu().numpy() for comp in
                               deeper_network.comparators]
 
         deeper_leaf_info = deeper_network.leaf_init_information[leaf_index*2]
@@ -287,17 +288,17 @@ def swap_in_node(network, deeper_network, leaf_index, use_gpu=False):
         new_leaf2 = deeper_network.action_probs[leaf_index * 2 + 1].detach().clone().data.cpu().numpy()
     else:
         new_weight = np.random.normal(scale=0.2,
-                                      size=old_weights[0].size()[0])
+                                      size=old_weights[0].weight.data.t().size()[0])
         new_comparator = np.random.normal(scale=0.2,
-                                          size=old_comparators[0].size()[0])
+                                          size=old_comparators[0].weight.data.size()[0])
         new_leaf1 = np.random.normal(scale=0.2,
                                      size=network.action_probs[leaf_index].size()[0])
         new_leaf2 = np.random.normal(scale=0.2,
                                      size=network.action_probs[leaf_index].size()[0])
 
-    new_weights = [weight.detach().clone().data.cpu().numpy() for weight in old_weights]
+    new_weights = [weight.weight.data.detach().clone().data.cpu().numpy() for weight in old_weights]
     new_weights.append(new_weight)  # Add it to the list of nodes
-    new_comparators = [comp.detach().clone().data.cpu().numpy() for comp in old_comparators]
+    new_comparators = [comp.weight.data.detach().clone().data.cpu().numpy() for comp in old_comparators]
     new_comparators.append(new_comparator)  # Add it to the list of nodes
 
     new_node_ind = len(new_weights) - 1  # Remember where we put it

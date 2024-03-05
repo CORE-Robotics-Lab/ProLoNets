@@ -68,9 +68,15 @@ class ProLoNet(nn.Module):
                         comparators.append(np.random.rand(self.input_dim))
                     else:
                         comparators.append(np.random.normal(0, 1.0, 1))
-        new_comps = torch.tensor(comparators, dtype=torch.float).to(self.device)
-        new_comps.requires_grad = True
-        self.comparators = nn.Parameter(new_comps, requires_grad=True)
+        # new_comps = torch.tensor(comparators, dtype=torch.float).to(self.device)
+        # new_comps.requires_grad = True
+        # self.comparators = nn.Parameter(new_comps, requires_grad=True)
+        new_data = []
+        for x in comparators:
+            new_lin = nn.Linear(1, 1, bias=False)
+            new_lin.weight.data = torch.tensor(x.astype(np.float32))
+            new_data.append(new_lin)
+        self.comparators = nn.Sequential(*new_data)
 
     def init_weights(self, weights):
         if weights is None:
@@ -83,9 +89,15 @@ class ProLoNet(nn.Module):
                 for node in range(2**level):
                     weights.append(np.random.rand(self.input_dim))
 
-        new_weights = torch.tensor(weights, dtype=torch.float).to(self.device)
-        new_weights.requires_grad = True
-        self.layers = nn.Parameter(new_weights, requires_grad=True)
+        # new_weights = torch.tensor(weights, dtype=torch.float).to(self.device)
+        # new_weights.requires_grad = True
+        # self.layers = nn.Parameter(new_weights, requires_grad=True)
+        new_data = []
+        for x in weights:
+            new_lin = nn.Linear(self.input_dim, 1, bias=False)
+            new_lin.weight.data = torch.tensor(x.transpose().astype(np.float32))
+            new_data.append(new_lin)
+        self.layers = nn.Sequential(*new_data)
 
     def init_alpha(self, alpha):
         self.alpha = torch.tensor([alpha], dtype=torch.float).to(self.device)
@@ -187,13 +199,15 @@ class ProLoNet(nn.Module):
 
     def forward(self, input_data, embedding_list=None):
 
-        input_data = input_data.t().expand(self.layers.size(0), *input_data.t().size())
+        # input_data = input_data.t().expand(len(self.layers), *input_data.t().size()).to(torch.float32)
 
-        input_data = input_data.permute(2, 0, 1)
-        comp = self.layers.mul(input_data)
-        if not self.vectorized:
-            comp = comp.sum(dim=2).unsqueeze(-1)
-        comp = comp.sub(self.comparators.expand(input_data.size(0), *self.comparators.size()))
+        # input_data = input_data.permute(2, 0, 1)
+        comp = torch.stack([x(input_data) for x in self.layers])
+        # if not self.vectorized:
+        #     comp = comp.sum(dim=2).unsqueeze(-1)
+        # comp = comp.sub(self.comparators.expand(input_data.size(0), *self.comparators.size()))
+        # comp = comp - self.comparators
+        comp = comp - torch.stack([x.weight.data for x in self.comparators])  # WARNING: NO GRADIENT FLOW
         comp = comp.mul(self.alpha)
         sig_vals = self.sig(comp)
         if self.vectorized:
